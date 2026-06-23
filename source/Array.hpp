@@ -88,7 +88,7 @@ constexpr auto operator==(const Extents<N>& lhs, const Extents<N>& rhs) -> bool
 //******************************************************************************
 
 template<typename E>
-[[noreturn]] void throw_with_context (
+[[noreturn]] constexpr void throw_with_context (
     const std::string& message,
     const std::source_location& location = std::source_location::current()
 )
@@ -1720,7 +1720,7 @@ class Array;
 // Helper functions to copy from initializer lists, for D = 1, D = 2, D = 3
 
 template<typename T, int64_t D, Extents<D> E, typename L, bool S>
-void array_copy_from_initializer_list(Array<T, 1, E, L, S> &a, std::initializer_list<T> l)
+constexpr void array_copy_from_initializer_list(Array<T, 1, E, L, S> &a, std::initializer_list<T> l)
 {
     if (!(l.size() == a.extents(0)))
     {
@@ -1735,7 +1735,7 @@ void array_copy_from_initializer_list(Array<T, 1, E, L, S> &a, std::initializer_
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L, bool S>
-void array_copy_from_initializer_list(Array<T, 2, E, L, S> &a, std::initializer_list<std::initializer_list<T>> ll)
+constexpr void array_copy_from_initializer_list(Array<T, 2, E, L, S> &a, std::initializer_list<std::initializer_list<T>> ll)
 {
     if (!(ll.size() == a.extents(0)))
     {
@@ -1759,7 +1759,7 @@ void array_copy_from_initializer_list(Array<T, 2, E, L, S> &a, std::initializer_
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L, bool S>
-void array_copy_from_initializer_list(Array<T, 3, E, L, S> &a, std::initializer_list<std::initializer_list<std::initializer_list<T>>> lll)
+constexpr void array_copy_from_initializer_list(Array<T, 3, E, L, S> &a, std::initializer_list<std::initializer_list<std::initializer_list<T>>> lll)
 {
     if (!(lll.size() == a.extents(0)))
     {
@@ -2155,17 +2155,17 @@ public:
 
     Array();
 
-    Array (
+    constexpr Array (
         std::initializer_list<T> l
     ) requires (D == 1);
 
-    Array (
+    constexpr Array (
         std::initializer_list <
             std::initializer_list<T>
         > ll
     ) requires (D == 2);
 
-    Array (
+    constexpr Array (
         std::initializer_list <
             std::initializer_list <
                 std::initializer_list<T>
@@ -2182,11 +2182,11 @@ public:
     template<typename T1>
     auto operator=(const Array<T1, D, E, L, true> &other) -> Array&;
 
-    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> const T&;
-    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) -> T&;
+    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) constexpr auto operator[](I... i) const -> const T&;
+    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) constexpr auto operator[](I... i) -> T&;
 
-    auto operator[](const Extents<D> &indices) const -> const T&;
-    auto operator[](const Extents<D> &indices) -> T&;
+    constexpr auto operator[](const Extents<D> &indices) const -> const T&;
+    constexpr auto operator[](const Extents<D> &indices) -> T&;
 
     static consteval auto dimension() -> int64_t;
 
@@ -2224,7 +2224,7 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 Array<T, D, E, L, true>::Array() = default;
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, true>::Array (
+constexpr Array<T, D, E, L, true>::Array (
     std::initializer_list<T> l
 ) requires (D == 1)
 {
@@ -2232,7 +2232,7 @@ Array<T, D, E, L, true>::Array (
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, true>::Array (
+constexpr Array<T, D, E, L, true>::Array (
     std::initializer_list <
         std::initializer_list<T>
     > ll
@@ -2242,7 +2242,7 @@ Array<T, D, E, L, true>::Array (
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, true>::Array (
+constexpr Array<T, D, E, L, true>::Array (
     std::initializer_list <
         std::initializer_list <
             std::initializer_list<T>
@@ -2277,26 +2277,26 @@ auto Array<T, D, E, L, true>::operator=(const Array<T1, D, E, L, true> &other) -
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-auto Array<T, D, E, L, true>::operator[](I... i) const -> const T&
+constexpr auto Array<T, D, E, L, true>::operator[](I... i) const -> const T&
 {
     return m_elements[s_layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-auto Array<T, D, E, L, true>::operator[](I... i) -> T&
+constexpr auto Array<T, D, E, L, true>::operator[](I... i) -> T&
 {
     return m_elements[s_layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) const -> const T&
+constexpr auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) const -> const T&
 {
        return m_elements[s_layout.offset(indices)];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) -> T&
+constexpr auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) -> T&
 {
     return m_elements[s_layout.offset(indices)];
 }

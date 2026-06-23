@@ -2,9 +2,7 @@
 
 #include <print>
 #include <ranges>
-
 #include <stack>
-
 
 auto constructors() -> void
 {
@@ -17,22 +15,38 @@ auto constructors() -> void
     // A dynamic 2 x 3 array from an std::initializer_list
 
     Array<float, 2> b = {
-        {1, 2, 3},
-        {4, 5, 6}
+        {0, 1, 2},
+        {3, 4, 5}
     };
 
     // A static array of 3 floats
 
-    Array<float, 1, {3}> d = {1, 2, 3};
+    constexpr Array<float, 1, {3}> c = {0, 1, 2};
+    static_assert(c[0] == 0);
 
     // A static 4 x 4 array of floats from an std::initializer_list
 
-    Array<float, 2, {4, 4}> c = {
+    constexpr Array<float, 2, {4, 4}> d = {
          {1, 0, 0, 0},
          {0, 1, 0, 0},
          {0, 0, 1, 0},
          {0, 0, 0, 1}
      };
+     static_assert(d[0, 0] == 1);
+
+    // A static 2 x 2 x 2 array of floats from an std::initializer_list
+
+    constexpr Array<float, 3, {2, 2, 2}> e = {
+        {
+            {0, 1},
+            {2, 3}
+        },
+        {
+            {4, 5},
+            {6, 7}
+        }
+     };
+     static_assert(e[0, 0, 0] == 0);
 
 }
 
@@ -56,6 +70,7 @@ auto iterators() -> void
     {
         std::println("{}", a.p_elements()[i]);
     }
+
 }
 
 auto views() -> void
@@ -80,4 +95,6 @@ auto main() -> int
     constructors();
     iterators();
     views();
+
+    return 0;
 }
