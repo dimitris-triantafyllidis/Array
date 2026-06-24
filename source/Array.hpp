@@ -263,27 +263,6 @@ constexpr auto make_array_from_tuple(const Tuple &tuple) -> auto
     return helper(std::make_integer_sequence<int64_t, std::tuple_size_v<Tuple>>());
 }
 
-template<typename... Args>
-auto write_args_get_index_array(Args... args) -> auto
-{
-    auto args_tuple = std::forward_as_tuple(args...);
-
-    auto index_tuple = tuple_take<sizeof...(Args) - 1>(args_tuple);
-    auto index_array = make_array_from_tuple<int64_t>(index_tuple);
-
-    return index_array;
-}
-
-template<typename... Args>
-auto write_args_get_value(Args... args) -> auto
-{
-    auto args_tuple = std::forward_as_tuple(args...);
-
-    auto value = std::get<sizeof...(Args) - 1>(args_tuple);
-
-    return value;
-}
-
 //******************************************************************************
 // ICloneable Interface
 //******************************************************************************
