@@ -118,7 +118,7 @@ constexpr auto next_multiple(T n, T f) -> T
     {
         throw_with_context<std::domain_error>("Domain error. Check source location.");
     }
-    return n % f ? (n / f) * n + f : n;
+    return n % f ? (n / f) * f + f : n;
 }
 
 template<int64_t D>
