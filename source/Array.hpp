@@ -75,6 +75,9 @@ struct Extents
 
     constexpr auto begin() const -> const int64_t* { return data; }
     constexpr auto end() const -> const int64_t* { return data + N; }
+
+    constexpr auto cbegin() const -> const int64_t* { return data; }
+    constexpr auto cend() const -> const int64_t* { return data + N; }
 };
 
 template<int64_t N>
