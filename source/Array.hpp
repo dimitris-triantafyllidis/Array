@@ -193,12 +193,14 @@ constexpr auto all_of_extents_powers_of_2(const Extents<D> &extents) -> bool
 }
 
 template<int64_t D>
-constexpr auto all_of_extents_equal(const Extents<D> &extents) -> bool
+constexpr bool all_of_extents_equal(const Extents<D> &extents)
 {
+    const int64_t first = extents[0];
+
     return std::ranges::all_of (
         extents,
-        [&extents = std::as_const(extents)] (const int64_t &e) -> auto {
-            return e == extents[0];
+        [first] (const int64_t &e) -> auto {
+            return e == first;
         }
     );
 }

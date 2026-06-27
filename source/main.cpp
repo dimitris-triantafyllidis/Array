@@ -88,7 +88,7 @@ auto views() -> void
         std::println("b{} = {}", it.cursor(), *it);
     }
 
-    b.resize(1, 0);
+    b.resize(1, 1);
 
     std::println("{}", b);
 
