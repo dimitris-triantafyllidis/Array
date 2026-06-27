@@ -88,6 +88,10 @@ auto views() -> void
         std::println("b{} = {}", it.cursor(), *it);
     }
 
+    b.resize(1, 0);
+
+    std::println("{}", b);
+
 }
 
 auto main() -> int

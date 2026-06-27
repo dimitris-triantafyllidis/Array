@@ -122,6 +122,19 @@ constexpr auto next_multiple(T n, T f) -> T
 }
 
 template<int64_t D>
+constexpr auto extents_intersection(const Extents<D> &e1, const Extents<D> &e2) -> Extents<D>
+{
+    Extents<D> result;
+
+    for (int64_t i = 0; i < D; i++)
+    {
+        result[i] = std::min(e1[i], e2[i]);
+    }
+
+    return result;
+}
+
+template<int64_t D>
 constexpr auto all_of_extents_static(const Extents<D> &extents) -> bool
 {
     return std::ranges::all_of (
@@ -1969,6 +1982,11 @@ public:
     auto end() const -> ReadOnlyIndexTupleIterator<Array>;
     auto cend() const -> ReadOnlyIndexTupleIterator<Array>;
 
+    template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
+    auto resize(NewExtents... extents) -> void;
+
+    auto resize(const Extents<D> &extents) -> void;
+
 private:
 
     L m_layout;
@@ -1983,13 +2001,13 @@ Array<T, D, E, L, false>::Array()
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 Array<T, D, E, L, false>::Array(const Extents<D> &extents)
+: m_layout(extents)
 {
     if (!(extents_valid<D>(extents)))
     {
         throw_with_context<std::domain_error>("Domain error. Check source location.");
     }
 
-    m_layout = Layout(extents);
     m_elements = ValuePtr<T[]>::make(m_layout.size_allocated());
 }
 
@@ -2225,6 +2243,32 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::cend() const -> ReadOnlyIndexTupleIterator<Array>
 {
     return end();
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
+auto Array<T, D, E, L, false>::resize(NewExtents... extents) -> void
+{
+    resize({int64_t(extents)...});
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+auto Array<T, D, E, L, false>::resize(const Extents<D> &extents) -> void
+{
+    auto intersection_view = make_read_only_slice_view<D, make_extents_iota<D>(0)> (
+        *this,
+        make_extents_filled<D>(0),
+        extents_intersection<D>(this->extents(), extents)
+    );
+
+    Array resized = Array(intersection_view.extents());
+
+    for (auto it = intersection_view.cbegin(); it != intersection_view.cend(); it++)
+    {
+        resized[it.cursor()] = *it;
+    }
+
+    std::swap(*this, resized);
 }
 
 // Specialization for all-static extents
