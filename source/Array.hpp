@@ -193,7 +193,7 @@ constexpr auto all_of_extents_powers_of_2(const Extents<D> &extents) -> bool
 }
 
 template<int64_t D>
-constexpr bool all_of_extents_equal(const Extents<D> &extents)
+constexpr auto all_of_extents_equal(const Extents<D> &extents) -> bool
 {
     const int64_t first = extents[0];
 
