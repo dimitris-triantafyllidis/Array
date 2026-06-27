@@ -103,7 +103,7 @@ requires std::constructible_from<E, std::string>
             location.function_name(),
             location.file_name(),
             location.line(),
-            full_message
+            message
         );
     throw E(full_message);
 }
