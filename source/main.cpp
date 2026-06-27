@@ -52,7 +52,7 @@ auto constructors() -> void
 
 auto iterators() -> void
 {
-    Array<float, 2, {dynamic_extent, dynamic_extent}, Blocked<2, {0, 1}, {4, 2}>> a(6, 6);
+    Array<float, 2, {dynamic_extent, dynamic_extent}, Morton<2>> a(4, 4);
 
     float f = 0;
 

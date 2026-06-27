@@ -177,6 +177,17 @@ constexpr auto all_of_extents_powers_of_2(const Extents<D> &extents) -> bool
 }
 
 template<int64_t D>
+constexpr auto all_of_extents_equal(const Extents<D> &extents) -> bool
+{
+    return std::ranges::all_of (
+        extents,
+        [&extents = std::as_const(extents)] (const int64_t &e) -> auto {
+            return e == extents[0];
+        }
+    );
+}
+
+template<int64_t D>
 constexpr auto compute_extents_countr_zero(const Extents<D> &extents) -> Extents<D>
 {
     Extents<D> result{};
@@ -831,6 +842,107 @@ template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
 constexpr auto Blocked<D, AxisPermutation, BlockExtents>::is_always_contiguous() const -> bool
 {
     return false;
+}
+
+// Morton layout class
+
+template <int64_t D>
+class Morton
+{
+
+    static_assert(D > 0);
+
+public:
+
+    constexpr Morton(const Extents<D> &extents);
+
+    consteval auto dimension() const -> int64_t;
+
+    constexpr auto size() const  -> int64_t;
+    constexpr auto size_stored() const -> int64_t;
+    constexpr auto size_allocated() const -> int64_t;
+
+    constexpr auto extents() const -> const Extents<D>&;
+
+    constexpr auto offset(const Extents<D> &indices) const -> int64_t;
+
+    constexpr auto is_contiguous() const -> bool;
+    constexpr auto is_always_contiguous() const -> bool;
+
+private:
+
+    Extents<D> m_extents;
+};
+
+template <int64_t D>
+constexpr Morton<D>::Morton(const Extents<D> &extents)
+: m_extents(extents)
+{
+    if (
+        !all_of_extents_powers_of_2(extents) ||
+        !all_of_extents_equal(extents)
+    )
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+}
+
+template <int64_t D>
+consteval auto Morton<D>::dimension() const -> int64_t
+{
+    return D;
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::size() const -> int64_t
+{
+    return std::reduce(m_extents.begin(), m_extents.end(), int64_t(1), std::multiplies{});
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::size_stored() const -> int64_t
+{
+    return size();
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::size_allocated() const -> int64_t
+{
+    return size();
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::extents() const -> const Extents<D>&
+{
+    return m_extents;
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::offset(const Extents<D> &indices) const -> int64_t
+{
+    int64_t offset = 0;
+
+    for (int64_t extents_bit = 0; extents_bit <= std::countr_zero(static_cast<uint64_t>(m_extents[0])); extents_bit++)
+    {
+        for (int64_t extent = 0; extent < m_extents.size(); extent++)
+        {
+            offset |= ((indices[extent] >> extents_bit) & int64_t(1)) << (extents_bit * m_extents.size() + m_extents.size() - (extent + 1));
+        }
+    }
+
+    return offset;
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::is_contiguous() const -> bool
+{
+    return true;
+}
+
+template <int64_t D>
+constexpr auto Morton<D>::is_always_contiguous() const -> bool
+{
+    return true;
 }
 
 //******************************************************************************
