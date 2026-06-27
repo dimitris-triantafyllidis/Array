@@ -1,3 +1,5 @@
+#define ARRAY_BOUNDS_CHECKING_ON
+
 #include "Array.hpp"
 
 #include <print>
@@ -31,8 +33,8 @@ auto constructors() -> void
          {0, 1, 0, 0},
          {0, 0, 1, 0},
          {0, 0, 0, 1}
-     };
-     static_assert(d[0, 0] == 1);
+    };
+    static_assert(d[0, 0] == 1);
 
     // A static 2 x 2 x 2 array of floats from an std::initializer_list
 
@@ -45,8 +47,11 @@ auto constructors() -> void
             {4, 5},
             {6, 7}
         }
-     };
-     static_assert(e[0, 0, 0] == 0);
+    };
+
+    std::println("{}", e[3, 3, 3]);
+
+    static_assert(e[0, 0, 0] == 0);
 
 }
 

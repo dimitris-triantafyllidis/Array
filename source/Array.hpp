@@ -125,6 +125,40 @@ constexpr auto next_multiple(T n, T f) -> T
 }
 
 template<int64_t D>
+constexpr auto all_of_indices_in_bounds(const Extents<D> &indices, const Extents<D> &extents) -> bool
+{
+    for (int64_t i = 0; i < D; i++)
+    {
+        if (indices[i] < 0 || indices[i] >= extents[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+template<int64_t D>
+constexpr auto check_bounds(const Extents<D> &indices, const Extents<D> &extents) -> void
+{
+    if (all_of_indices_in_bounds(indices, extents))
+    {
+        return;
+    }
+
+    if (std::is_constant_evaluated())
+    {
+        std::unreachable();
+    }
+    else
+    {
+        throw_with_context<std::out_of_range> (
+            std::format("Array indices out of range: indices = {}, extents = {}", indices, extents)
+        );
+    }
+}
+
+template<int64_t D>
 constexpr auto extents_intersection(const Extents<D> &e1, const Extents<D> &e2) -> Extents<D>
 {
     Extents<D> result;
@@ -695,6 +729,11 @@ constexpr auto Affine<D, AxisPermutation>::extents() const -> const Extents<D>&
 template <int64_t D, Extents<D> AxisPermutation>
 constexpr auto Affine<D, AxisPermutation>::offset(const Extents<D> &indices) const -> int64_t
 {
+
+#ifdef ARRAY_BOUNDS_CHECKING_ON
+    check_bounds(indices, m_extents);
+#endif
+
     int64_t offset = indices[AxisPermutation[D - 1]];
 
     if constexpr (D > 1)
@@ -808,6 +847,10 @@ constexpr auto Blocked<D, AxisPermutation, BlockExtents>::extents() const -> con
 template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
 constexpr auto Blocked<D, AxisPermutation, BlockExtents>::offset(const Extents<D> &indices) const -> int64_t
 {
+
+#ifdef ARRAY_BOUNDS_CHECKING_ON
+    check_bounds(indices, m_extents);
+#endif
 
     int64_t block_start_offset = indices[AxisPermutation[D - 1]] >> s_block_extents_log2[AxisPermutation[D - 1]];
 
@@ -938,6 +981,11 @@ constexpr auto Morton<D>::extents() const -> const Extents<D>&
 template <int64_t D>
 constexpr auto Morton<D>::offset(const Extents<D> &indices) const -> int64_t
 {
+
+#ifdef ARRAY_BOUNDS_CHECKING_ON
+    check_bounds(indices, m_extents);
+#endif
+
     int64_t offset = 0;
 
     for (int64_t extents_bit = 0; extents_bit <= std::countr_zero(static_cast<uint64_t>(m_extents[0])); extents_bit++)
