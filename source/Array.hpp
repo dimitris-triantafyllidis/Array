@@ -1,3 +1,6 @@
+#ifndef ARRAY_HPP
+#define ARRAY_HPP
+
 #include <concepts>
 #include <cstdint>
 #include <utility>
@@ -2877,4 +2880,6 @@ public:
         return out;
     }
 };
+
+#endif // ARRAY_HPP
 
