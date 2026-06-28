@@ -1,13 +1,117 @@
 #include <concepts>
 #include <cstdint>
 #include <utility>
+#include <functional>
+#include <algorithm>
+#include <vector>
+#include <queue>
 #include <string>
+#include <array>
 #include <format>
 #include <source_location>
-#include <algorithm>
 #include <numeric>
-#include <array>
 #include <complex>
+#include <thread>
+#include <mutex>
+#include <future>
+
+//******************************************************************************
+// AsyncTaskQueue
+//******************************************************************************
+
+class AsyncTaskQueue
+{
+
+public:
+
+    AsyncTaskQueue();
+    ~AsyncTaskQueue();
+
+    template<typename F, typename... Args>
+    auto enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>;
+
+    auto queue_size() -> int64_t;
+
+    auto stop() -> void;
+
+private:
+
+    std::thread                       m_thread;
+    std::mutex                        m_mutex;
+    std::condition_variable           m_condition_variable;
+    std::queue<std::function<void()>> m_task_queue;
+    bool                              m_stop = false;
+
+    auto thread_loop() -> void;
+
+};
+
+template<typename F, typename... Args>
+auto AsyncTaskQueue::enqueue_task(F&& f, Args&&... args)
+    -> std::future<std::invoke_result_t<F, Args...>>
+{
+    using ReturnType = std::invoke_result_t<F, Args...>;
+
+    auto task = std::make_shared<std::packaged_task<ReturnType()>> (
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+    );
+
+    auto result = task->get_future();
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_task_queue.push([task]() { (*task)(); });
+    }
+
+    m_condition_variable.notify_one();
+    return result;
+}
+
+//******************************************************************************
+// AsyncTaskQueuePool
+//******************************************************************************
+
+class AsyncTaskQueuePool
+{
+
+public:
+
+    AsyncTaskQueuePool(int64_t task_queue_count = 1);
+    ~AsyncTaskQueuePool();
+
+    template<typename F, typename... Args>
+    auto enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>;
+
+    auto queue_size(int64_t queue_index) -> int64_t;
+
+    auto stop() -> void;
+
+private:
+
+    std::vector<AsyncTaskQueue> m_task_queues;
+
+};
+
+template<typename F, typename... Args>
+auto AsyncTaskQueuePool::enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
+{
+    int64_t min_queue_size = std::numeric_limits<int64_t>::max();
+    int64_t min_queue_size_queue_index = std::numeric_limits<int64_t>::max();
+
+    for(int64_t i = 0; i < m_task_queues.size(); i++)
+    {
+        if(m_task_queues[i].queue_size() < min_queue_size)
+        {
+            min_queue_size = m_task_queues[i].queue_size();
+            min_queue_size_queue_index = i;
+        }
+    }
+
+    return m_task_queues[min_queue_size_queue_index].enqueue_task (
+        std::forward<F>(f),
+        std::forward<Args>(args)...
+    );
+}
 
 //******************************************************************************
 // Concepts for numerical types
@@ -146,16 +250,9 @@ constexpr auto check_bounds(const Extents<D> &indices, const Extents<D> &extents
         return;
     }
 
-    if (std::is_constant_evaluated())
-    {
-        std::unreachable();
-    }
-    else
-    {
-        throw_with_context<std::out_of_range> (
-            std::format("Array indices out of range: indices = {}, extents = {}", indices, extents)
-        );
-    }
+    throw_with_context<std::out_of_range> (
+        std::format("Array indices out of range: indices = {}, extents = {}", indices, extents)
+    );
 }
 
 template<int64_t D>
