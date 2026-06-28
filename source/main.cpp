@@ -1,5 +1,5 @@
 #define ARRAY_BOUNDS_CHECKING_ON
-
+#define ARRAY_IMPLEMENTATION
 #include "Array.hpp"
 
 #include <print>

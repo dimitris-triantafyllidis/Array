@@ -67,6 +67,60 @@ auto AsyncTaskQueue::enqueue_task(F&& f, Args&&... args)
     return result;
 }
 
+#ifdef ARRAY_IMPLEMENTATION
+
+AsyncTaskQueue::AsyncTaskQueue()
+{
+    m_thread = std::thread([this] { thread_loop(); });
+}
+
+AsyncTaskQueue::~AsyncTaskQueue()
+{
+    stop();
+}
+
+auto AsyncTaskQueue::queue_size() -> int64_t
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_task_queue.size();
+}
+
+auto AsyncTaskQueue::stop() -> void
+{
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_stop = true;
+    }
+    m_condition_variable.notify_one();
+    if (m_thread.joinable())
+    {
+        m_thread.join();
+    }
+}
+
+auto AsyncTaskQueue::thread_loop() -> void
+{
+    while (true)
+    {
+        std::function<void()> task;
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_condition_variable.wait(lock, [this] { return m_stop || !m_task_queue.empty(); });
+
+            if (m_stop && m_task_queue.empty())
+            {
+                break;
+            }
+
+            task = std::move(m_task_queue.front());
+            m_task_queue.pop();
+        }
+        task();
+    }
+}
+
+#endif
+
 //******************************************************************************
 // AsyncTaskQueuePool
 //******************************************************************************
@@ -112,6 +166,31 @@ auto AsyncTaskQueuePool::enqueue_task(F&& f, Args&&... args) -> std::future<std:
         std::forward<Args>(args)...
     );
 }
+
+#ifdef ARRAY_IMPLEMENTATION
+
+AsyncTaskQueuePool::AsyncTaskQueuePool(int64_t task_queue_count) : m_task_queues(task_queue_count)
+{}
+
+AsyncTaskQueuePool::~AsyncTaskQueuePool()
+{
+    stop();
+}
+
+auto AsyncTaskQueuePool::queue_size(int64_t queue_index) -> int64_t
+{
+    return m_task_queues[queue_index].queue_size();
+}
+
+auto AsyncTaskQueuePool::stop() -> void
+{
+    for (auto& task_queue : m_task_queues)
+    {
+        task_queue.stop();
+    }
+}
+
+#endif
 
 //******************************************************************************
 // Concepts for numerical types
