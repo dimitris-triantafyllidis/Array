@@ -1406,7 +1406,7 @@ BasicIndexTupleIterator(const A&) -> BasicIndexTupleIterator<A, true>;
  * @tparam A                  The array-like type of the object we want the view to refer to, typically an `Array` or another `View`.
  * @tparam IsReadOnly         Whether the view is read-only.
  * @tparam D                  Dimension of the view. Must be equal to or less than the dimension of `A`.
- * @tparam ViewIndexSubspace  An `Extents<D>` specifying the axis indices along which the view will extend. \n
+ * @tparam ViewIndexSubspace  An `Extents<D>` specifying the axis indices along which the view will extend.
  *                            Must be a strictly increasing sequence.
  */
 
@@ -1765,8 +1765,8 @@ auto make_read_only_slice_view (
  * @tparam A                  The array-like type of the object we want the view to refer to, typically an `Array` or another `View`.
  * @tparam IsReadOnly         Whether the view is read-only.
  * @tparam D                  Dimension of the view. Must be equal to or bigger than the dimension of `A`.
- * @tparam AIndexSubspace     An `Extents<A::dimension()>` specifying the view axis indices along which the viewed object extends. \n
-                              Must be a strictly increasing sequence.
+ * @tparam AIndexSubspace     An `Extents<A::dimension()>` specifying the view axis indices along which the viewed object extends.
+ *                            Must be a strictly increasing sequence.
  */
 
 template <
