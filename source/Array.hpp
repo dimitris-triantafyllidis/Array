@@ -243,6 +243,11 @@ concept ScalarNumType =
     ScalarRealFloatintPointNumType<T> ||
     ScalarComplexNumType<T>;
 
+//******************************************************************************
+// Helper class for array extents and indices
+// Like std::array but does not cause NTTP headaches
+//******************************************************************************
+
 template<int64_t N>
 struct Extents
 {
