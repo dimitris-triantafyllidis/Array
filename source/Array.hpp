@@ -196,57 +196,6 @@ auto AsyncTaskQueuePool::stop() -> void
 #endif
 
 //******************************************************************************
-// Concepts for numerical types
-//******************************************************************************
-
-template<typename T, typename U>
-concept SameAsUpToCVRef = std::same_as <
-    std::remove_cvref_t<T>,
-    std::remove_cvref_t<U>
->;
-
-template<typename T>
-concept ScalarRealSignedIntegerNumType =
-    SameAsUpToCVRef<T, int8_t> ||
-    SameAsUpToCVRef<T, int16_t> ||
-    SameAsUpToCVRef<T, int32_t> ||
-    SameAsUpToCVRef<T, int64_t>;
-
-template<typename T>
-concept ScalarRealUnsignedIntegerNumType =
-    SameAsUpToCVRef<T, uint8_t> ||
-    SameAsUpToCVRef<T, uint16_t> ||
-    SameAsUpToCVRef<T, uint32_t> ||
-    SameAsUpToCVRef<T, uint64_t>;
-
-template<typename T>
-concept ScalarRealIntegerNumType =
-    ScalarRealSignedIntegerNumType<T> || ScalarRealUnsignedIntegerNumType<T>;
-
-template<typename T>
-concept ScalarRealFloatintPointNumType =
-    SameAsUpToCVRef<T, float> ||
-    SameAsUpToCVRef<T, double>;
-
-template<typename T>
-concept ScalarComplexFloatingPointNumType =
-    requires {
-        typename T::value_type;
-    } &&
-    ScalarRealFloatintPointNumType<typename T::value_type> &&
-    SameAsUpToCVRef<T, std::complex<typename T::value_type>>;
-
-template<typename T>
-concept ScalarComplexNumType =
-    ScalarComplexFloatingPointNumType<T>;
-
-template<typename T>
-concept ScalarNumType =
-    ScalarRealIntegerNumType<T> ||
-    ScalarRealFloatintPointNumType<T> ||
-    ScalarComplexNumType<T>;
-
-//******************************************************************************
 // Helper class for array extents and indices
 // Like std::array but does not cause NTTP headaches
 //******************************************************************************
@@ -543,7 +492,7 @@ concept ValuePtrPointee =
 
 // ValuePtr class template
 
-    // Base template
+// Base template
 
 template<ValuePtrPointee T>
 class ValuePtr
@@ -583,7 +532,7 @@ private:
 
 };
 
-    // Specialization for arrays
+// Specialization for arrays
 
 template<ValuePtrPointee T>
 class ValuePtr<T[]>
@@ -624,7 +573,7 @@ private:
 
 };
 
-    // Base template
+// Base template
 
 template<ValuePtrPointee T>
 ValuePtr<T>::ValuePtr(const ValuePtr<T> &other)
@@ -732,7 +681,7 @@ auto ValuePtr<T>::make(Args&&... args) -> ValuePtr<T>
     return ValuePtr<T>(new T(std::forward<Args>(args)...));
 }
 
-    // Specialization for arrays
+// Specialization for arrays
 
 template<ValuePtrPointee T>
 ValuePtr<T[]>::ValuePtr(const ValuePtr<T[]> &other)
@@ -2880,6 +2829,97 @@ public:
         return out;
     }
 };
+
+//******************************************************************************
+// Concepts for scalar numerical types
+//******************************************************************************
+
+template<typename T, typename U>
+concept SameAsUpToCVRef = std::same_as <
+    std::remove_cvref_t<T>,
+    std::remove_cvref_t<U>
+>;
+
+template<typename T>
+concept ScalarRealSignedIntegerNumType =
+    SameAsUpToCVRef<T, int8_t> ||
+    SameAsUpToCVRef<T, int16_t> ||
+    SameAsUpToCVRef<T, int32_t> ||
+    SameAsUpToCVRef<T, int64_t>;
+
+template<typename T>
+concept ScalarRealUnsignedIntegerNumType =
+    SameAsUpToCVRef<T, uint8_t> ||
+    SameAsUpToCVRef<T, uint16_t> ||
+    SameAsUpToCVRef<T, uint32_t> ||
+    SameAsUpToCVRef<T, uint64_t>;
+
+template<typename T>
+concept ScalarRealIntegerNumType =
+    ScalarRealSignedIntegerNumType<T> || ScalarRealUnsignedIntegerNumType<T>;
+
+template<typename T>
+concept ScalarRealFloatingPointNumType =
+    SameAsUpToCVRef<T, float> ||
+    SameAsUpToCVRef<T, double>;
+
+template<typename T>
+concept ScalarComplexFloatingPointNumType =
+    requires {
+        typename T::value_type;
+    } &&
+    ScalarRealFloatingPointNumType<typename T::value_type> &&
+    SameAsUpToCVRef<T, std::complex<typename T::value_type>>;
+
+template<typename T>
+concept ScalarComplexNumType =
+    ScalarComplexFloatingPointNumType<T>;
+
+template<typename T>
+concept ScalarNumType =
+    ScalarRealIntegerNumType<T> ||
+    ScalarRealFloatingPointNumType<T> ||
+    ScalarComplexNumType<T>;
+
+//******************************************************************************
+// Traits and concepts for array and view types
+//******************************************************************************
+
+template <typename T>
+struct IsArrayType : std::false_type {};
+
+template <typename T, int64_t D, Extents<D> E, typename L, bool S>
+struct IsArrayType<Array<T, D, E, L, S>> : std::true_type {};
+
+template<typename T>
+concept ArrayType = IsArrayType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsSliceViewType : std::false_type {};
+
+template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
+struct IsSliceViewType<BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>> : std::true_type {};
+
+template<typename T>
+concept SliceViewType = IsSliceViewType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBroadcastViewType : std::false_type {};
+
+template <typename A, bool IsReadOnly, int64_t D, Extents<D> AIndexSubspace>
+struct IsBroadcastViewType<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>> : std::true_type {};
+
+template<typename T>
+concept BroadcastViewType = IsBroadcastViewType<std::remove_cvref_t<T>>::value;
+
+
+template<typename T>
+struct IsViewType : std::bool_constant <IsSliceViewType<T>::value || IsBroadcastViewType<T>::value> {};
+
+template<typename T>
+concept ViewType = IsViewType<std::remove_cvref_t<T>>::value;
 
 #endif // ARRAY_HPP
 
