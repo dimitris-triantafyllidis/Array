@@ -49,7 +49,7 @@ auto constructors() -> void
         }
     };
 
-    std::println("{}", e[3, 3, 3]);
+    std::println("{}", e[1, 1, 1]);
 
     static_assert(e[0, 0, 0] == 0);
 

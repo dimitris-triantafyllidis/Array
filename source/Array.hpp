@@ -2885,15 +2885,20 @@ concept ScalarNumType =
 // Traits and concepts for array and view types
 //******************************************************************************
 
+
+// Arrays
+
 template <typename T>
 struct IsArrayType : std::false_type {};
 
 template <typename T, int64_t D, Extents<D> E, typename L, bool S>
 struct IsArrayType<Array<T, D, E, L, S>> : std::true_type {};
 
-template<typename T>
+template <typename T>
 concept ArrayType = IsArrayType<std::remove_cvref_t<T>>::value;
 
+
+// Views
 
 template <typename T>
 struct IsSliceViewType : std::false_type {};
@@ -2901,7 +2906,7 @@ struct IsSliceViewType : std::false_type {};
 template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 struct IsSliceViewType<BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>> : std::true_type {};
 
-template<typename T>
+template <typename T>
 concept SliceViewType = IsSliceViewType<std::remove_cvref_t<T>>::value;
 
 
@@ -2911,15 +2916,82 @@ struct IsBroadcastViewType : std::false_type {};
 template <typename A, bool IsReadOnly, int64_t D, Extents<D> AIndexSubspace>
 struct IsBroadcastViewType<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>> : std::true_type {};
 
-template<typename T>
+template <typename T>
 concept BroadcastViewType = IsBroadcastViewType<std::remove_cvref_t<T>>::value;
 
 
-template<typename T>
-struct IsViewType : std::bool_constant <IsSliceViewType<T>::value || IsBroadcastViewType<T>::value> {};
+template <typename T>
+struct IsViewType :
+    std::bool_constant <
+        IsSliceViewType<T>::value     ||
+        IsBroadcastViewType<T>::value
+    > {};
 
-template<typename T>
+template <typename T>
 concept ViewType = IsViewType<std::remove_cvref_t<T>>::value;
+
+
+// Iterators
+
+template <typename T>
+struct IsIndexTupleIteratorType : std::false_type {};
+
+template <typename A, bool IsReadOnly>
+struct IsIndexTupleIteratorType<BasicIndexTupleIterator<A, IsReadOnly>> : std::true_type {};
+
+template <typename T>
+concept IndexTupleIteratorType = IsIndexTupleIteratorType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsIteratorType : std::bool_constant <IsIndexTupleIteratorType<T>::value> {};
+
+template <typename T>
+concept IteratorType = IsIteratorType<std::remove_cvref_t<T>>::value;
+
+
+// Layouts
+
+template <typename T>
+struct IsAffineLayoutType : std::false_type {};
+
+template <int64_t D, Extents<D> AxisPermutation>
+struct IsAffineLayoutType<Affine<D, AxisPermutation>> : std::true_type {};
+
+template <typename T>
+concept AffineLayoutType = IsAffineLayoutType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBlockedLayoutType : std::false_type {};
+
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
+struct IsBlockedLayoutType<Blocked<D, AxisPermutation, BlockExtents>> : std::true_type {};
+
+template <typename T>
+concept BlockedLayoutType = IsBlockedLayoutType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsMortonLayoutType : std::false_type {};
+
+template <int64_t D>
+struct IsMortonLayoutType<Morton<D>> : std::true_type {};
+
+template <typename T>
+concept MortonLayoutType = IsMortonLayoutType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsLayoutType :
+    std::bool_constant <
+        IsAffineLayoutType<T>::value  ||
+        IsBlockedLayoutType<T>::value ||
+        IsMortonLayoutType<T>::value
+    > {};
+
+template <typename T>
+concept LayoutType = IsLayoutType<std::remove_cvref_t<T>>::value;
 
 #endif // ARRAY_HPP
 
