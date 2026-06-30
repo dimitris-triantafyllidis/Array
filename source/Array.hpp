@@ -2993,5 +2993,75 @@ struct IsLayoutType :
 template <typename T>
 concept LayoutType = IsLayoutType<std::remove_cvref_t<T>>::value;
 
+//******************************************************************************
+// Compute result types
+//******************************************************************************
+
+template<typename Op, typename L, typename R>
+requires (
+    ( ArrayType<L> || ViewType<L> ) &&
+    ( ArrayType<R> || ViewType<R> ) &&
+    ( L::dimension() == R::dimension() ) &&
+    (
+        !L::is_of_static_extents() ||
+        !R::is_of_static_extents() ||
+        ( L::type_extents() == R::type_extents() )
+    ) &&
+    (
+        ViewType<L> ||
+        ViewType<R> ||
+        std::same_as<typename L::Layout, typename R::Layout>
+    )
+)
+struct BinaryOpResultType
+{
+    using Element = decltype (
+        Op {} (
+            std::declval<typename L::Element>(),
+            std::declval<typename R::Element>()
+        )
+    );
+
+    static consteval auto dimension() -> int64_t {
+        return L::dimension();
+    }
+
+    using Layout =
+        std::conditional_t <
+            ViewType<L>,
+            typename R::Layout,
+            std::conditional_t <
+                ViewType<R>,
+                typename L::Layout,
+                Affine<dimension()>
+            >
+        >;
+
+    static consteval auto is_of_static_extents() -> bool {
+        return
+            L::is_of_static_extents() &&
+            R::is_of_static_extents();
+    }
+
+    static consteval auto type_extents() -> Extents<dimension()> {
+        if constexpr (is_of_static_extents())
+        {
+            return L::type_extents();
+        }
+        else
+        {
+            return make_extents_filled<dimension()>(dynamic_extent);
+        }
+    }
+
+    using Type = Array <
+        Element,
+        dimension(),
+        type_extents(),
+        typename L::Layout,
+        is_of_static_extents()
+    >;
+};
+
 #endif // ARRAY_HPP
 
