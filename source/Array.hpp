@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <cstdint>
+#include <exception>
 #include <utility>
 #include <functional>
 #include <algorithm>
@@ -17,6 +18,7 @@
 #include <thread>
 #include <mutex>
 #include <future>
+#include <print>
 
 //******************************************************************************
 // AsyncTaskQueue
@@ -2447,7 +2449,7 @@ auto Array<T, D, E, L, false>::resize(const Extents<D> &extents) -> void
         extents_intersection<D>(this->extents(), extents)
     );
 
-    Array resized = Array(intersection_view.extents());
+    Array resized = Array(extents);
 
     for (auto it = intersection_view.cbegin(); it != intersection_view.cend(); it++)
     {
@@ -3026,16 +3028,27 @@ struct BinaryOpResultType
         return L::dimension();
     }
 
+    template<class T, bool IsView = ViewType<T>>
+    struct LayoutOf;
+
+    template<class T>
+    struct LayoutOf<T, true>
+    {
+        using Type = Affine<dimension()>;
+    };
+
+    template<class T>
+    struct LayoutOf<T, false>
+    {
+        using Type = typename T::Layout;
+    };
+
     using Layout =
-        std::conditional_t <
-            ViewType<L>,
-            typename R::Layout,
-            std::conditional_t <
-                ViewType<R>,
-                typename L::Layout,
-                Affine<dimension()>
-            >
-        >;
+    std::conditional_t<
+        ViewType<L>,
+        typename LayoutOf<R>::Type,
+        typename LayoutOf<L>::Type
+    >;
 
     static consteval auto is_of_static_extents() -> bool {
         return
@@ -3063,5 +3076,46 @@ struct BinaryOpResultType
     >;
 };
 
-#endif // ARRAY_HPP
+template <typename Op, typename L, typename R>
+auto binary_op(const Op &op, const L &lhs, const R &rhs)
+    -> BinaryOpResultType<Op, L, R>::Type
+{
+    typename BinaryOpResultType<Op, L, R>::Type result;
 
+    if constexpr ( !result.is_of_static_extents() )
+    {
+        if (lhs.extents() != rhs.extents())
+        {
+            throw_with_context<std::domain_error>("Domain error. Check source location.");
+        }
+
+        result.resize(lhs.extents());
+    }
+
+    std::transform (
+        lhs.cbegin(), lhs.cend(),
+        rhs.cbegin(),
+        result.begin(),
+        Op {}
+    );
+
+    return result;
+}
+
+template <typename L, typename R>
+requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
+auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::plus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
+auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::minus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
+auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::multiplies<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
+auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::divides<> {}, lhs, rhs ); }
+
+#endif // ARRAY_HPP
