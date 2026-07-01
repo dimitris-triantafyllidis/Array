@@ -2999,6 +2999,36 @@ concept LayoutType = IsLayoutType<std::remove_cvref_t<T>>::value;
 // Compute result types
 //******************************************************************************
 
+template<class T, bool IsView = ViewType<T>>
+struct LayoutOf;
+
+template<class T>
+struct LayoutOf<T, true>
+{
+    using Type = Affine<T::dimension()>;
+};
+
+template<class T>
+struct LayoutOf<T, false>
+{
+    using Type = typename T::Layout;
+};
+
+template<typename Op, typename A>
+requires (
+    ( ArrayType<A> || ViewType<A> )
+)
+struct UnaryOpResultType
+{
+    using Type = Array <
+        typename A::Element,
+        A::dimension(),
+        A::type_extents(),
+        typename LayoutOf<A>::Type,
+        A::is_of_static_extents()
+    >;
+};
+
 template<typename Op, typename L, typename R>
 requires (
     ( ArrayType<L> || ViewType<L> ) &&
@@ -3028,27 +3058,12 @@ struct BinaryOpResultType
         return L::dimension();
     }
 
-    template<class T, bool IsView = ViewType<T>>
-    struct LayoutOf;
-
-    template<class T>
-    struct LayoutOf<T, true>
-    {
-        using Type = Affine<dimension()>;
-    };
-
-    template<class T>
-    struct LayoutOf<T, false>
-    {
-        using Type = typename T::Layout;
-    };
-
     using Layout =
-    std::conditional_t<
-        ViewType<L>,
-        typename LayoutOf<R>::Type,
-        typename LayoutOf<L>::Type
-    >;
+        std::conditional_t <
+            ViewType<L>,
+            typename LayoutOf<R>::Type,
+            typename LayoutOf<L>::Type
+        >;
 
     static consteval auto is_of_static_extents() -> bool {
         return
@@ -3075,6 +3090,27 @@ struct BinaryOpResultType
         is_of_static_extents()
     >;
 };
+
+template<typename Op, typename A>
+requires ( ArrayType<A> || ViewType<A> )
+auto unary_op(const Op &op, const A &a)
+    -> UnaryOpResultType<Op, A>::Type
+{
+    typename UnaryOpResultType<Op, A>::Type result;
+
+    if constexpr ( !result.is_of_static_extents() )
+    {
+        result.resize(a.extents());
+    }
+
+    std::transform (
+        a.cbegin(), a.cend(),
+        result.begin(),
+        op
+    );
+
+    return result;
+}
 
 template <typename Op, typename L, typename R>
 requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
@@ -3123,27 +3159,47 @@ auto binary_op_assign(const Op &op, L &lhs, const R &rhs) -> L&
 }
 
 template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
 auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::plus<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
 auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::minus<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
 auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::multiplies<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
 auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::divides<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
+auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::modulus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> && ArrayType<R> )
 auto operator+=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::plus<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> && ArrayType<R> )
 auto operator-=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::minus<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> && ArrayType<R> )
 auto operator*=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::multiplies<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
+requires ( ArrayType<L> && ArrayType<R> )
 auto operator/=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::divides<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> && ArrayType<R> )
+auto operator%=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::modulus<> {}, lhs, rhs ); }
+
+template <typename A>
+requires ( ArrayType<A> || ViewType<A> )
+auto operator-(const A &a) -> decltype(auto) { return unary_op ( std::negate<> {}, a ); }
 
 #endif // ARRAY_HPP

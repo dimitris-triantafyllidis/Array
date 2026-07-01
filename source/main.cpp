@@ -93,21 +93,19 @@ auto views() -> void
         std::println("b{} = {}", it.cursor(), *it);
     }
 
-    b.resize(1, 1);
-
     std::println("{}", b);
 
 }
 
 auto numerics() -> void
 {
-    Array<float, 1> a = {2, 3};
-    Array<int, 1> b = {4, 5};
+    Array<float, 1, {2}> a = {2, 3};
+    Array<float, 1> b = {4, 5};
 
-   std::println("{}", a += b);
-   std::println("{}", a -= b);
-   std::println("{}", a *= b);
-   std::println("{}", a /= b);
+    std::println("{}", -a + b);
+    std::println("{}", a -= b);
+    std::println("{}", a *= b);
+    std::println("{}", a /= b);
 }
 
 auto main() -> int
