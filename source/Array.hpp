@@ -3077,6 +3077,7 @@ struct BinaryOpResultType
 };
 
 template <typename Op, typename L, typename R>
+requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
 auto binary_op(const Op &op, const L &lhs, const R &rhs)
     -> BinaryOpResultType<Op, L, R>::Type
 {
@@ -3096,26 +3097,53 @@ auto binary_op(const Op &op, const L &lhs, const R &rhs)
         lhs.cbegin(), lhs.cend(),
         rhs.cbegin(),
         result.begin(),
-        Op {}
+        op
     );
 
     return result;
 }
 
+template <typename Op, typename L, typename R>
+requires (ArrayType<L> && ArrayType<R>)
+auto binary_op_assign(const Op &op, L &lhs, const R &rhs) -> L&
+{
+    if (lhs.extents() != rhs.extents())
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    std::transform (
+        lhs.cbegin(), lhs.cend(),
+        rhs.cbegin(),
+        lhs.begin(),
+        op
+    );
+
+    return lhs;
+}
+
 template <typename L, typename R>
-requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
 auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::plus<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
-requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
 auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::minus<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
-requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
 auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::multiplies<> {}, lhs, rhs ); }
 
 template <typename L, typename R>
-requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
 auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::divides<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+auto operator+=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::plus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+auto operator-=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::minus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+auto operator*=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::multiplies<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+auto operator/=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::divides<> {}, lhs, rhs ); }
 
 #endif // ARRAY_HPP

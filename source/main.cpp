@@ -104,10 +104,10 @@ auto numerics() -> void
     Array<float, 1> a = {2, 3};
     Array<int, 1> b = {4, 5};
 
-   std::println("{}", a + make_slice_view<1, {0}, decltype(a)>(a));
-   // std::println("{}", a - b);
-   // std::println("{}", a * b);
-   // std::println("{}", a / b);
+   std::println("{}", a += b);
+   std::println("{}", a -= b);
+   std::println("{}", a *= b);
+   std::println("{}", a /= b);
 }
 
 auto main() -> int
