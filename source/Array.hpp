@@ -3086,7 +3086,83 @@ struct BinaryOpResultType
         Element,
         dimension(),
         type_extents(),
-        typename L::Layout,
+        Layout,
+        is_of_static_extents()
+    >;
+};
+
+template<typename Op, typename L, typename R>
+requires (
+    ( ArrayType<L> || ViewType<L> ) && ScalarNumType<R>
+)
+struct BinaryOpRScalarResultType
+{
+    using Element = decltype (
+        Op {} ( std::declval<typename L::Element>(), std::declval<R>() )
+    );
+
+    static consteval auto dimension() -> int64_t {
+        return L::dimension();
+    }
+
+    static consteval auto is_of_static_extents() -> bool {
+        return L::is_of_static_extents();
+    }
+
+    static consteval auto type_extents() -> Extents<dimension()> {
+        if constexpr (is_of_static_extents())
+        {
+            return L::type_extents();
+        }
+        else
+        {
+            return make_extents_filled<dimension()>(dynamic_extent);
+        }
+    }
+
+    using Type = Array <
+        Element,
+        dimension(),
+        type_extents(),
+        typename LayoutOf<L>::Type,
+        is_of_static_extents()
+    >;
+};
+
+template<typename Op, typename L, typename R>
+requires (
+    ( ArrayType<R> || ViewType<R> ) && ScalarNumType<L>
+)
+struct BinaryOpLScalarResultType
+{
+    using Element = decltype (
+        Op {} ( std::declval<typename R::Element>(), std::declval<L>() )
+    );
+
+    static consteval auto dimension() -> int64_t {
+        return R::dimension();
+    }
+
+    static consteval auto is_of_static_extents() -> bool {
+        return R::is_of_static_extents();
+    }
+
+    static consteval auto type_extents() -> Extents<dimension()> {
+        if constexpr (is_of_static_extents())
+        {
+            return R::type_extents();
+        }
+        else
+        {
+            return make_extents_filled<dimension()>(dynamic_extent);
+        }
+    }
+
+    using Type = Array <
+        Element,
+        dimension(),
+        type_extents(),
+        typename LayoutOf<R>::Type,
         is_of_static_extents()
     >;
 };
@@ -3140,6 +3216,54 @@ auto binary_op(const Op &op, const L &lhs, const R &rhs)
 }
 
 template <typename Op, typename L, typename R>
+requires ((ArrayType<L> || ViewType<L> ) && ScalarNumType<R>)
+auto binary_op_r_scalar(const Op &op, const L &lhs, const R &rhs)
+    -> BinaryOpRScalarResultType<Op, L, R>::Type
+{
+    typename BinaryOpRScalarResultType<Op, L, R>::Type result;
+
+    if constexpr ( !result.is_of_static_extents() )
+    {
+        result.resize(lhs.extents());
+    }
+
+    auto lhs_it = lhs.cbegin();
+    auto result_it = result.begin();
+
+    while ( lhs_it != lhs.cend() )
+    {
+        *result_it = op(*lhs_it, rhs);
+        lhs_it++; result_it++;
+    }
+
+    return result;
+}
+
+template <typename Op, typename L, typename R>
+requires ((ArrayType<R> || ViewType<R> ) && ScalarNumType<L>)
+auto binary_op_l_scalar(const Op &op, const L &lhs, const R &rhs)
+    -> BinaryOpLScalarResultType<Op, L, R>::Type
+{
+    typename BinaryOpLScalarResultType<Op, L, R>::Type result;
+
+    if constexpr ( !result.is_of_static_extents() )
+    {
+        result.resize(rhs.extents());
+    }
+
+    auto rhs_it = rhs.cbegin();
+    auto result_it = result.begin();
+
+    while ( rhs_it != rhs.cend() )
+    {
+        *result_it = op(*rhs_it, lhs);
+        rhs_it++; result_it++;
+    }
+
+    return result;
+}
+
+template <typename Op, typename L, typename R>
 requires (ArrayType<L> && ArrayType<R>)
 auto binary_op_assign(const Op &op, L &lhs, const R &rhs) -> L&
 {
@@ -3157,6 +3281,24 @@ auto binary_op_assign(const Op &op, L &lhs, const R &rhs) -> L&
 
     return lhs;
 }
+
+template <typename Op, typename L, typename R>
+requires ((ArrayType<L> || ViewType<R>) && ScalarNumType<R>)
+auto binary_op_assign_r_scalar(const Op &op, L &lhs, const R &rhs) -> L&
+{
+
+    auto lhs_it = lhs.begin();
+
+    while (lhs_it != lhs.end())
+    {
+        *lhs_it = op(*lhs_it, rhs);
+        lhs_it++;
+    }
+
+    return lhs;
+}
+
+// (Array | View ) op (Array | View)
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
@@ -3178,6 +3320,52 @@ template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
 auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::modulus<> {}, lhs, rhs ); }
 
+// (Array | View ) op Scalar
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::plus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::minus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::multiplies<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::divides<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::modulus<> {}, lhs, rhs ); }
+
+// Scalar op (Array | View)
+
+template <typename L, typename R>
+requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::plus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::minus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::multiplies<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::divides<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::modulus<> {}, lhs, rhs ); }
+
+// Array op-assign Array
+
 template <typename L, typename R>
 requires ( ArrayType<L> && ArrayType<R> )
 auto operator+=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::plus<> {}, lhs, rhs ); }
@@ -3197,6 +3385,30 @@ auto operator/=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::div
 template <typename L, typename R>
 requires ( ArrayType<L> && ArrayType<R> )
 auto operator%=(L &lhs, const R &rhs) -> L& { return binary_op_assign ( std::modulus<> {}, lhs, rhs ); }
+
+// (Array | View ) op-assign Scalar
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator+=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar ( std::plus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator-=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar ( std::minus<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator*=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar ( std::multiplies<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator/=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar ( std::divides<> {}, lhs, rhs ); }
+
+template <typename L, typename R>
+requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+auto operator%=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar ( std::modulus<> {}, lhs, rhs ); }
+
+// Unary ops
 
 template <typename A>
 requires ( ArrayType<A> || ViewType<A> )

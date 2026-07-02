@@ -99,13 +99,10 @@ auto views() -> void
 
 auto numerics() -> void
 {
-    Array<float, 1, {2}> a = {2, 3};
-    Array<float, 1> b = {4, 5};
+    Array<int, 1, {2}> a = {2, 3};
 
-    std::println("{}", -a + b);
-    std::println("{}", a -= b);
-    std::println("{}", a *= b);
-    std::println("{}", a /= b);
+    std::println("{}", a % 3);
+
 }
 
 auto main() -> int
