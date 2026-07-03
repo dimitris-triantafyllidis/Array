@@ -19,6 +19,7 @@
 #include <mutex>
 #include <future>
 #include <print>
+#include <cmath>
 
 //******************************************************************************
 // AsyncTaskQueue
@@ -3020,8 +3021,11 @@ requires (
 )
 struct UnaryOpResultType
 {
+    using OpIn  = typename A::Element;
+    using OpOut = std::invoke_result_t<Op, OpIn>;
+
     using Type = Array <
-        typename A::Element,
+        OpOut,
         A::dimension(),
         A::type_extents(),
         typename LayoutOf<A>::Type,
@@ -3414,6 +3418,10 @@ template <typename A>
 requires ( ArrayType<A> || ViewType<A> )
 auto operator-(const A &a) -> decltype(auto) { return unary_op ( std::negate<> {}, a ); }
 
+template <typename A>
+requires ( ArrayType<A> || ViewType<A> )
+auto abs(const A &a) -> decltype(auto) { return unary_op ( [](auto x) { return std::abs(x); }, a ); }
+
 // Transpose a 2D array
 
 template<typename A>
@@ -3440,6 +3448,42 @@ void transpose(A &a, int64_t block_size = 1)
             for(int l = 0; l < block_size; l++)
                 std::swap(a[i + k, j + l], a[j + l, i + k]);
     }
+}
+
+template<typename A>
+requires ( ArrayType<A> || ViewType<A> )
+auto max(const A &a) -> typename A::Element
+{
+    if (a.size() == 0)
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    typename A::Element result = *a.cbegin();
+
+    for (const auto &e : a)
+        if(e > result)
+            result = e;
+
+    return result;
+}
+
+template<typename A>
+requires ( ArrayType<A> || ViewType<A> )
+auto norm_L2(const A &a)
+{
+    if (a.size() == 0)
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    using Result = decltype(std::abs(std::declval<typename A::Element>()));
+    Result result = 0;
+
+    for (const auto &e : a)
+        result += std::norm(e);
+
+    return std::sqrt(result);
 }
 
 #endif // ARRAY_HPP
