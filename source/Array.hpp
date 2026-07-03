@@ -3414,4 +3414,32 @@ template <typename A>
 requires ( ArrayType<A> || ViewType<A> )
 auto operator-(const A &a) -> decltype(auto) { return unary_op ( std::negate<> {}, a ); }
 
+// Transpose a 2D array
+
+template<typename A>
+requires ( ArrayType<A> && A::dimension() == 2 )
+void transpose(A &a, int64_t block_size = 1)
+{
+    if (
+        (a.extents(0) != a.extents(1)) ||
+        (a.extents(0) % block_size != 0)
+    )
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    for(int i = 0; i < a.extents(0); i += block_size)
+    for(int j = i; j < a.extents(1); j += block_size)
+    {
+        if(j == i)
+            for(int k = 0; k < block_size; k++)
+            for(int l = k + 1; l < block_size; l++)
+                std::swap(a[i + k, j + l], a[j + l, i + k]);
+        else
+            for(int k = 0; k < block_size; k++)
+            for(int l = 0; l < block_size; l++)
+                std::swap(a[i + k, j + l], a[j + l, i + k]);
+    }
+}
+
 #endif // ARRAY_HPP
