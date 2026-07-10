@@ -2442,13 +2442,19 @@ constexpr auto Array<T, D, E, L>::size_allocated() const -> int64_t
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::p_elements() const -> const T*
 {
-    return m.elements.get();
+    if constexpr (all_of_extents_dynamic(E))
+        return m.elements.get();
+    else
+        return m.elements.data();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::p_elements() -> T*
 {
-    return m.elements.get();
+    if constexpr (all_of_extents_dynamic(E))
+        return m.elements.get();
+    else
+        return m.elements.data();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
