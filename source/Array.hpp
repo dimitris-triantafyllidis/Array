@@ -391,7 +391,10 @@ constexpr auto compute_extents_countr_zero(const Extents<D> &extents) -> Extents
 template<int64_t D>
 constexpr auto extents_valid(const Extents<D> &extents) -> bool
 {
-    return (D > 0) && (all_of_extents_zero(extents) || all_of_extents_positive(extents));
+    return
+        ( D > 0 ) &&
+        ( all_of_extents_zero    ( extents ) || all_of_extents_positive ( extents ) ) &&
+        ( all_of_extents_dynamic ( extents ) || all_of_extents_static   ( extents ) );
 }
 
 template<int64_t N>
@@ -806,6 +809,8 @@ class Affine
 
 public:
 
+    constexpr Affine() = default;
+
     constexpr explicit Affine(const Extents<D> &extents);
 
     consteval auto dimension() const -> int64_t;
@@ -914,6 +919,8 @@ class Blocked
     static_assert(std::ranges::is_permutation(AxisPermutation, make_extents_iota<D>(0)));
 
 public:
+
+    constexpr Blocked() = default;
 
     constexpr explicit Blocked(const Extents<D> &extents);
 
@@ -1050,6 +1057,8 @@ class Morton
     static_assert(D > 0);
 
 public:
+
+    constexpr Morton() = default;
 
     constexpr explicit Morton(const Extents<D> &extents);
 
@@ -1997,23 +2006,20 @@ auto make_read_only_broadcast_view (
  *            or with the value `dynamic_extent` for dynamic arrays. Filled with the `dynamic_extent` sentinel value by default.
  * @tparam L  A type implementing the actual read and write operations, determining the memory layout.
  *            Defaults to `Affine<D>`.
- * @tparam S  Boolean flag computed from `E`, indicating whether all extents are static.
- *            Used to select between the static and dynamic specializations.
  */
 
 template <
     typename   T,
     int64_t    D,
     Extents<D> E = make_extents_filled<D>(dynamic_extent),
-    typename   L = Affine<D>,
-    bool       S = all_of_extents_static(E)
+    typename   L = Affine<D>
 >
 class Array;
 
 // Helper functions to copy from initializer lists, for D = 1, D = 2, D = 3
 
-template<typename T, int64_t D, Extents<D> E, typename L, bool S>
-constexpr void array_copy_from_initializer_list(Array<T, 1, E, L, S> &a, std::initializer_list<T> l)
+template<typename T, int64_t D, Extents<D> E, typename L>
+constexpr void array_copy_from_initializer_list(Array<T, 1, E, L> &a, std::initializer_list<T> l)
 {
     if (!(l.size() == a.extents(0)))
     {
@@ -2027,8 +2033,8 @@ constexpr void array_copy_from_initializer_list(Array<T, 1, E, L, S> &a, std::in
     }
 }
 
-template<typename T, int64_t D, Extents<D> E, typename L, bool S>
-constexpr void array_copy_from_initializer_list(Array<T, 2, E, L, S> &a, std::initializer_list<std::initializer_list<T>> ll)
+template<typename T, int64_t D, Extents<D> E, typename L>
+constexpr void array_copy_from_initializer_list(Array<T, 2, E, L> &a, std::initializer_list<std::initializer_list<T>> ll)
 {
     if (!(ll.size() == a.extents(0)))
     {
@@ -2051,8 +2057,8 @@ constexpr void array_copy_from_initializer_list(Array<T, 2, E, L, S> &a, std::in
     }
 }
 
-template<typename T, int64_t D, Extents<D> E, typename L, bool S>
-constexpr void array_copy_from_initializer_list(Array<T, 3, E, L, S> &a, std::initializer_list<std::initializer_list<std::initializer_list<T>>> lll)
+template<typename T, int64_t D, Extents<D> E, typename L>
+constexpr void array_copy_from_initializer_list(Array<T, 3, E, L> &a, std::initializer_list<std::initializer_list<std::initializer_list<T>>> lll)
 {
     if (!(lll.size() == a.extents(0)))
     {
@@ -2084,14 +2090,33 @@ constexpr void array_copy_from_initializer_list(Array<T, 3, E, L, S> &a, std::in
     }
 }
 
-// Specialization for all-dynamic extents
+template <typename T, int64_t D, Extents<D> E, typename L, bool S>
+struct ArrayMembers;
+
+template <typename T, int64_t D, Extents<D> E, typename L>
+struct ArrayMembers<T, D, E, L, false>
+{
+    using Layout = L;
+
+    Layout layout;
+    ValuePtr<T[]> elements;
+};
+
+template <typename T, int64_t D, Extents<D> E, typename L>
+struct ArrayMembers<T, D, E, L, true>
+{
+    using Layout = L;
+
+    static constexpr Layout layout = Layout(E);
+    std::array<T, layout.size_allocated()> elements;
+};
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-class Array<T, D, E, L, false>
+class Array
 {
 
     static_assert(D > 0);
-    static_assert(all_of_extents_dynamic(E));
+    static_assert(extents_valid(E));
 
 public:
 
@@ -2102,22 +2127,23 @@ public:
 
     Array();
 
-    explicit Array(const Extents<D> &extents);
+    explicit Array(const Extents<D> &extents) requires (all_of_extents_dynamic(E));
 
     template<std::integral... ExtentsPack>
+    requires (all_of_extents_dynamic(E))
     Array(ExtentsPack... extents_pack);
 
-    Array (
+    constexpr Array (
         std::initializer_list<T> l
     ) requires (D == 1);
 
-    Array (
+    constexpr Array (
         std::initializer_list <
             std::initializer_list<T>
         > ll
     ) requires (D == 2);
 
-    Array (
+    constexpr Array (
         std::initializer_list <
             std::initializer_list <
                 std::initializer_list<T>
@@ -2132,411 +2158,10 @@ public:
     Array (const A &a);
 
     template<typename T1>
-    Array(const Array<T1, D, E, L, false> &other);
+    Array(const Array<T1, D, E, L> &other);
 
     template<typename T1>
-    auto operator=(const Array<T1, D, E, L, false> &other) -> Array&;
-
-    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> const T&;
-    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) -> T&;
-
-    auto operator[](const Extents<D> &indices) const -> const T&;
-    auto operator[](const Extents<D> &indices) -> T&;
-
-    static consteval auto dimension() -> int64_t;
-
-    static consteval auto is_owning_type() -> bool;
-
-    static consteval auto is_of_static_extents() -> bool;
-
-    static consteval auto type_extents() -> Extents<D>;
-
-    auto extents() const -> const Extents<D>&;
-    auto extents(const int64_t &i) const -> const int64_t&;
-
-    auto layout() const -> const Layout&;
-
-    auto size() const -> int64_t;
-    auto size_stored() -> int64_t;
-    auto size_allocated() const -> int64_t;
-
-    auto p_elements() const -> const T*;
-    auto p_elements() -> T*;
-
-    auto begin() -> IndexTupleIterator<Array>;
-    auto begin() const -> ReadOnlyIndexTupleIterator<Array>;
-    auto cbegin() const -> ReadOnlyIndexTupleIterator<Array>;
-
-    auto end() -> IndexTupleIterator<Array>;
-    auto end() const -> ReadOnlyIndexTupleIterator<Array>;
-    auto cend() const -> ReadOnlyIndexTupleIterator<Array>;
-
-    template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
-    auto resize(NewExtents... extents) -> void;
-
-    auto resize(const Extents<D> &extents) -> void;
-
-private:
-
-    struct Members
-    {
-        Layout layout;
-        ValuePtr<T[]> elements;
-    };
-
-    Members m;
-
-};
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, false>::Array()
-: m {
-    .layout   = Layout(make_extents_filled<D>(0)),
-    .elements = ValuePtr<T[]>(nullptr, 0)
-}
-{}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, false>::Array(const Extents<D> &extents)
-: m {
-    .layout = Layout(extents)
-}
-{
-    if (!(extents_valid<D>(extents)))
-    {
-        throw_with_context<std::domain_error>("Domain error. Check source location.");
-    }
-
-    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<std::integral... ExtentsPack>
-Array<T, D, E, L, false>::Array(ExtentsPack... extents_pack)
-: m {
-    .layout = Layout({int64_t(extents_pack)...})
-}
-{
-    static_assert(sizeof...(extents_pack) == D);
-
-    if (!(extents_valid<D>({int64_t(extents_pack)...})))
-    {
-        m.layout = Layout(make_extents_filled<D>(0));
-        throw_with_context<std::domain_error>("Domain error. Check source location.");
-    }
-
-    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, false>::Array (
-    std::initializer_list<T> l
-) requires (D == 1)
-: m {
-    .layout =
-        Layout (
-            {
-                int64_t(l.size())
-            }
-        )
-}
-{
-    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
-    array_copy_from_initializer_list(*this, l);
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, false>::Array (
-    std::initializer_list <
-        std::initializer_list<T>
-    > ll
-) requires (D == 2)
-: m {
-    .layout =
-        Layout (
-            {
-                int64_t(ll.size()),
-                int64_t(ll.begin()->size())
-            }
-        )
-}
-{
-    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
-    array_copy_from_initializer_list(*this, ll);
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, false>::Array (
-    std::initializer_list <
-        std::initializer_list <
-            std::initializer_list<T>
-        >
-    > lll
-) requires (D == 3)
-: m {
-    .layout =
-        Layout (
-            {
-                int64_t(lll.size()),
-                int64_t(lll.begin()->size()),
-                int64_t(lll.begin()->begin()->size())
-            }
-        )
-}
-{
-    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
-    array_copy_from_initializer_list(*this, lll);
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename A>
-requires
-    requires { { A::is_owning_type() } -> std::convertible_to<bool>; } &&
-    ( A::is_owning_type() == false )
-Array<T, D, E, L, false>::Array(const A &a) : Array(a.extents())
-{
-    ReadOnlyIndexTupleIterator view_it(a);
-    IndexTupleIterator it(*this);
-
-    for (int64_t i = 0; i < size(); i++)
-    {
-        *it++ = *view_it++;
-    }
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename T1>
-Array<T, D, E, L, false>::Array(const Array<T1, D, E, L, false> &other)
-: m {
-    .layout   = other.layout(),
-    .elements = ValuePtr<T[]>::make(other.size_allocated())
-}
-{
-    std::copy_n(other.p_elements(), other.size(), p_elements());
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename T1>
-auto Array<T, D, E, L, false>::operator=(const Array<T1, D, E, L, false> &other) -> Array&
-{
-    if constexpr (std::is_same_v<T, T1>)
-    {
-        if(this == &other)
-        {
-            return *this;
-        }
-    }
-
-    m.layout = other.layout();
-    m.elements = ValuePtr<T[]>::make(other.size_allocated());
-    std::copy_n(other.p_elements(), other.size(), p_elements());
-
-    return *this;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-auto Array<T, D, E, L, false>::operator[](I... i) const -> const T&
-{
-    return m.elements[m.layout.offset({int64_t(i)...})];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-auto Array<T, D, E, L, false>::operator[](I... i) -> T&
-{
-    return m.elements[m.layout.offset({int64_t(i)...})];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::operator[](const Extents<D> &indices) const -> const T&
-{
-    return m.elements[m.layout.offset(indices)];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::operator[](const Extents<D> &indices) -> T&
-{
-    return m.elements[m.layout.offset(indices)];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, false>::dimension() -> int64_t
-{
-    return D;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, false>::is_owning_type() -> bool
-{
-    return true;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, false>::is_of_static_extents() -> bool
-{
-    return false;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, false>::type_extents() -> Extents<D>
-{
-    return E;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::extents() const -> const Extents<D>&
-{
-    return m.layout.extents();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::extents(const int64_t &i) const -> const int64_t&
-{
-    return m.layout.extents()[i];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::layout() const -> const Layout&
-{
-    return m.layout;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::size() const -> int64_t
-{
-    return m.layout.size();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::size_allocated() const -> int64_t
-{
-    return m.layout.size_allocated();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::p_elements() const -> const T*
-{
-    return m.elements.get();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::p_elements() -> T*
-{
-    return m.elements.get();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::begin() -> IndexTupleIterator<Array>
-{
-    return IndexTupleIterator<Array>(*this);
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::begin() const -> ReadOnlyIndexTupleIterator<Array>
-{
-    return ReadOnlyIndexTupleIterator<Array>(*this);
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::cbegin() const -> ReadOnlyIndexTupleIterator<Array>
-{
-    return begin();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::end() -> IndexTupleIterator<Array>
-{
-    IndexTupleIterator<Array> it(*this);
-    it.carry(true);
-    return it;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::end() const -> ReadOnlyIndexTupleIterator<Array>
-{
-    ReadOnlyIndexTupleIterator<Array> it(*this);
-    it.carry(true);
-    return it;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::cend() const -> ReadOnlyIndexTupleIterator<Array>
-{
-    return end();
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
-auto Array<T, D, E, L, false>::resize(NewExtents... extents) -> void
-{
-    resize({int64_t(extents)...});
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, false>::resize(const Extents<D> &extents) -> void
-{
-    auto intersection_view = make_read_only_slice_view<D, make_extents_iota<D>(0)> (
-        *this,
-        make_extents_filled<D>(0),
-        extents_intersection<D>(this->extents(), extents)
-    );
-
-    Array resized = Array(extents);
-
-    for (auto it = intersection_view.cbegin(); it != intersection_view.cend(); it++)
-    {
-        resized[it.cursor()] = *it;
-    }
-
-    std::swap(*this, resized);
-}
-
-// Specialization for all-static extents
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-class Array<T, D, E, L, true>
-{
-
-    static_assert(D > 0);
-    static_assert(all_of_extents_static(E));
-    static_assert(extents_valid(E));
-
-public:
-
-    using Element = T;
-    using Layout = L;
-
-    using Owning = Array;
-
-    Array();
-
-    constexpr Array (
-        std::initializer_list<T> l
-    ) requires (D == 1);
-
-    constexpr Array (
-        std::initializer_list <
-            std::initializer_list<T>
-        > ll
-    ) requires (D == 2);
-
-    constexpr Array (
-        std::initializer_list <
-            std::initializer_list <
-                std::initializer_list<T>
-            >
-        > lll
-    ) requires (D == 3);
-
-    template<typename T1>
-    Array(const Array<T1, D, E, L, true> &other);
-
-    template<typename T1, int64_t N>
-    Array(const std::array<T1, N> &other) requires (D == 1 && E[0] == N);
-
-    template<typename T1>
-    auto operator=(const Array<T1, D, E, L, true> &other) -> Array&;
+    auto operator=(const Array<T1, D, E, L> &other) -> Array&;
 
     template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) constexpr auto operator[](I... i) const -> const T&;
     template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) constexpr auto operator[](I... i) -> T&;
@@ -2555,55 +2180,114 @@ public:
     constexpr auto extents() const -> const Extents<D>&;
     constexpr auto extents(const int64_t &i) const -> const int64_t&;
 
+    constexpr auto layout() const -> const Layout&;
+
     constexpr auto size() const -> int64_t;
+    constexpr auto size_stored() -> int64_t;
     constexpr auto size_allocated() const -> int64_t;
 
-    auto p_elements() const -> const T*;
-    auto p_elements() -> T*;
+    constexpr auto p_elements() const -> const T*;
+    constexpr auto p_elements() -> T*;
 
-    auto begin() -> IndexTupleIterator<Array>;
-    auto begin() const -> ReadOnlyIndexTupleIterator<Array>;
-    auto cbegin() const -> ReadOnlyIndexTupleIterator<Array>;
+    constexpr auto begin() -> IndexTupleIterator<Array>;
+    constexpr auto begin() const -> ReadOnlyIndexTupleIterator<Array>;
+    constexpr auto cbegin() const -> ReadOnlyIndexTupleIterator<Array>;
 
-    auto end() -> IndexTupleIterator<Array>;
-    auto end() const -> ReadOnlyIndexTupleIterator<Array>;
-    auto cend() const -> ReadOnlyIndexTupleIterator<Array>;
+    constexpr auto end() -> IndexTupleIterator<Array>;
+    constexpr auto end() const -> ReadOnlyIndexTupleIterator<Array>;
+    constexpr auto cend() const -> ReadOnlyIndexTupleIterator<Array>;
+
+    template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
+    auto resize(NewExtents... extents) -> void requires (all_of_extents_dynamic(E));
+
+    auto resize(const Extents<D> &extents) -> void requires (all_of_extents_dynamic(E));
 
 private:
 
-    struct Members
-    {
-        static constexpr Layout layout = Layout(E);
-        std::array<T, layout.size_allocated()> elements;
-    };
-
-    Members m;
+    ArrayMembers<T, D, E, L, all_of_extents_static(E)> m;
 
 };
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-Array<T, D, E, L, true>::Array() = default;
+Array<T, D, E, L>::Array()
+{
+    if constexpr (all_of_extents_dynamic(E))
+    {
+        m.layout   = Layout(make_extents_filled<D>(0));
+        m.elements = ValuePtr<T[]>(nullptr, 0);
+    }
+}
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr Array<T, D, E, L, true>::Array (
+Array<T, D, E, L>::Array(const Extents<D> &extents) requires (all_of_extents_dynamic(E))
+: m {
+    .layout = Layout(extents)
+}
+{
+    if (!(extents_valid<D>(extents)))
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+template<std::integral... ExtentsPack>
+requires (all_of_extents_dynamic(E))
+Array<T, D, E, L>::Array(ExtentsPack... extents_pack)
+: m {
+    .layout = Layout({int64_t(extents_pack)...})
+}
+{
+    static_assert(sizeof...(extents_pack) == D);
+
+    if (!(extents_valid<D>({int64_t(extents_pack)...})))
+    {
+        m.layout = Layout(make_extents_filled<D>(0));
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+constexpr Array<T, D, E, L>::Array (
     std::initializer_list<T> l
 ) requires (D == 1)
 {
+    if constexpr (all_of_extents_dynamic(E))
+    {
+        Extents<D> extents = {
+            int64_t(l.size())
+        };
+        m.layout   = Layout(extents);
+        m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
+    }
     array_copy_from_initializer_list(*this, l);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr Array<T, D, E, L, true>::Array (
+constexpr Array<T, D, E, L>::Array (
     std::initializer_list <
         std::initializer_list<T>
     > ll
 ) requires (D == 2)
 {
+    if constexpr (all_of_extents_dynamic(E))
+    {
+        Extents<D> extents = {
+            int64_t(ll.size()),
+            int64_t(ll.begin()->size())
+        };
+        m.layout   = Layout(extents);
+        m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
+    }
     array_copy_from_initializer_list(*this, ll);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr Array<T, D, E, L, true>::Array (
+constexpr Array<T, D, E, L>::Array (
     std::initializer_list <
         std::initializer_list <
             std::initializer_list<T>
@@ -2611,137 +2295,182 @@ constexpr Array<T, D, E, L, true>::Array (
     > lll
 ) requires (D == 3)
 {
+    if constexpr (all_of_extents_dynamic(E))
+    {
+        Extents<D> extents = {
+            int64_t(lll.size()),
+            int64_t(lll.begin()->size()),
+            int64_t(lll.begin()->begin()->size())
+        };
+        m.layout   = Layout(extents);
+        m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
+    }
     array_copy_from_initializer_list(*this, lll);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename T1>
-Array<T, D, E, L, true>::Array(const Array<T1, D, E, L, true> &other)
+template<typename A>
+requires
+    requires
+    { { A::is_owning_type() } -> std::convertible_to<bool>; } &&
+    ( A::is_owning_type() == false )
+Array<T, D, E, L>::Array(const A &a) : Array(a.extents())
 {
+    ReadOnlyIndexTupleIterator view_it(a);
+    IndexTupleIterator it(*this);
+
+    for (int64_t i = 0; i < size(); i++)
+    {
+        *it++ = *view_it++;
+    }
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+template<typename T1>
+Array<T, D, E, L>::Array(const Array<T1, D, E, L> &other)
+{
+    if constexpr (all_of_extents_dynamic(E))
+    {
+        m.layout   = other.layout();
+        m.elements = ValuePtr<T[]>::make(other.size_allocated());
+    }
     std::copy_n(other.p_elements(), other.size(), p_elements());
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename T1, int64_t N>
-Array<T, D, E, L, true>::Array(const std::array<T1, N> &other) requires (D == 1 && E[0] == N)
-{
-    std::copy_n(other.data(), other.size(), p_elements());
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename T1>
-auto Array<T, D, E, L, true>::operator=(const Array<T1, D, E, L, true> &other) -> Array&
+auto Array<T, D, E, L>::operator=(const Array<T1, D, E, L> &other) -> Array&
 {
+    if constexpr (std::is_same_v<T, T1>)
+    {
+        if(this == &other)
+        {
+            return *this;
+        }
+    }
+
+    if constexpr (all_of_extents_dynamic(E))
+    {
+        m.layout = other.layout();
+        m.elements = ValuePtr<T[]>::make(other.size_allocated());
+    }
     std::copy_n(other.p_elements(), other.size(), p_elements());
+
     return *this;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-constexpr auto Array<T, D, E, L, true>::operator[](I... i) const -> const T&
+constexpr auto Array<T, D, E, L>::operator[](I... i) const -> const T&
 {
     return m.elements[m.layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-constexpr auto Array<T, D, E, L, true>::operator[](I... i) -> T&
+constexpr auto Array<T, D, E, L>::operator[](I... i) -> T&
 {
     return m.elements[m.layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) const -> const T&
-{
-       return m.elements[m.layout.offset(indices)];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) -> T&
+constexpr auto Array<T, D, E, L>::operator[](const Extents<D> &indices) const -> const T&
 {
     return m.elements[m.layout.offset(indices)];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, true>::dimension() -> int64_t
+constexpr auto Array<T, D, E, L>::operator[](const Extents<D> &indices) -> T&
+{
+    return m.elements[m.layout.offset(indices)];
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+consteval auto Array<T, D, E, L>::dimension() -> int64_t
 {
     return D;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, true>::is_owning_type() -> bool
+consteval auto Array<T, D, E, L>::is_owning_type() -> bool
 {
     return true;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, true>::is_of_static_extents() -> bool
+consteval auto Array<T, D, E, L>::is_of_static_extents() -> bool
 {
-    return true;
+    return all_of_extents_static(E);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L, true>::type_extents() -> Extents<D>
+consteval auto Array<T, D, E, L>::type_extents() -> Extents<D>
 {
     return E;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L, true>::extents() const -> const Extents<D>&
+constexpr auto Array<T, D, E, L>::extents() const -> const Extents<D>&
 {
     return m.layout.extents();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L, true>::extents(const int64_t &i) const -> const int64_t&
+constexpr auto Array<T, D, E, L>::extents(const int64_t &i) const -> const int64_t&
 {
     return m.layout.extents()[i];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L, true>::size() const -> int64_t
+constexpr auto Array<T, D, E, L>::layout() const -> const Layout&
+{
+    return m.layout;
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+constexpr auto Array<T, D, E, L>::size() const -> int64_t
 {
     return m.layout.size();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L, true>::size_allocated() const -> int64_t
+constexpr auto Array<T, D, E, L>::size_allocated() const -> int64_t
 {
     return m.layout.size_allocated();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::p_elements() const -> const T*
+constexpr auto Array<T, D, E, L>::p_elements() const -> const T*
 {
-    return m.elements.data();
+    return m.elements.get();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::p_elements() -> T*
+constexpr auto Array<T, D, E, L>::p_elements() -> T*
 {
-    return m.elements.data();
+    return m.elements.get();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::begin() -> IndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::begin() -> IndexTupleIterator<Array>
 {
     return IndexTupleIterator<Array>(*this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::begin() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::begin() const -> ReadOnlyIndexTupleIterator<Array>
 {
     return ReadOnlyIndexTupleIterator<Array>(*this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::cbegin() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::cbegin() const -> ReadOnlyIndexTupleIterator<Array>
 {
     return begin();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::end() -> IndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::end() -> IndexTupleIterator<Array>
 {
     IndexTupleIterator<Array> it(*this);
     it.carry(true);
@@ -2749,7 +2478,7 @@ auto Array<T, D, E, L, true>::end() -> IndexTupleIterator<Array>
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::end() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::end() const -> ReadOnlyIndexTupleIterator<Array>
 {
     ReadOnlyIndexTupleIterator<Array> it(*this);
     it.carry(true);
@@ -2757,9 +2486,35 @@ auto Array<T, D, E, L, true>::end() const -> ReadOnlyIndexTupleIterator<Array>
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-auto Array<T, D, E, L, true>::cend() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::cend() const -> ReadOnlyIndexTupleIterator<Array>
 {
     return end();
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
+auto Array<T, D, E, L>::resize(NewExtents... extents) -> void requires (all_of_extents_dynamic(E))
+{
+    resize({int64_t(extents)...});
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+auto Array<T, D, E, L>::resize(const Extents<D> &extents) -> void requires (all_of_extents_dynamic(E))
+{
+    auto intersection_view = make_read_only_slice_view<D, make_extents_iota<D>(0)> (
+        *this,
+        make_extents_filled<D>(0),
+        extents_intersection<D>(this->extents(), extents)
+    );
+
+    Array resized = Array(extents);
+
+    for (auto it = intersection_view.cbegin(); it != intersection_view.cend(); it++)
+    {
+        resized[it.cursor()] = *it;
+    }
+
+    std::swap(*this, resized);
 }
 
 //******************************************************************************
@@ -2852,8 +2607,8 @@ public:
 
 // Specialization for Array
 
-template <typename T, int64_t D, Extents<D> E, typename L, bool S>
-class std::formatter<Array<T, D, E, L, S>>
+template <typename T, int64_t D, Extents<D> E, typename L>
+class std::formatter<Array<T, D, E, L>>
 {
 
 public:
@@ -2861,10 +2616,10 @@ public:
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(const Array<T, D, E, L, S> &a, FormatContext &ctx) const
+    auto format(const Array<T, D, E, L> &a, FormatContext &ctx) const
     {
         auto out = ctx.out();
-        auto view = ReadOnlySliceView<Array<T, D, E, L, S>>(a);
+        auto view = ReadOnlySliceView<Array<T, D, E, L>>(a);
         out = std::format_to(out, "{}", view);
         return out;
     }
@@ -2931,8 +2686,8 @@ concept ScalarNumType =
 template <typename T>
 struct IsArrayType : std::false_type {};
 
-template <typename T, int64_t D, Extents<D> E, typename L, bool S>
-struct IsArrayType<Array<T, D, E, L, S>> : std::true_type {};
+template <typename T, int64_t D, Extents<D> E, typename L>
+struct IsArrayType<Array<T, D, E, L>> : std::true_type {};
 
 template <typename T>
 concept ArrayType = IsArrayType<std::remove_cvref_t<T>>::value;
@@ -3065,8 +2820,7 @@ struct UnaryOpResultType
         OpOut,
         A::dimension(),
         A::type_extents(),
-        typename LayoutOf<A>::Type,
-        A::is_of_static_extents()
+        typename LayoutOf<A>::Type
     >;
 };
 
@@ -3127,8 +2881,7 @@ struct BinaryOpResultType
         Element,
         dimension(),
         type_extents(),
-        Layout,
-        is_of_static_extents()
+        Layout
     >;
 };
 
@@ -3165,8 +2918,7 @@ struct BinaryOpRScalarResultType
         Element,
         dimension(),
         type_extents(),
-        typename LayoutOf<L>::Type,
-        is_of_static_extents()
+        typename LayoutOf<L>::Type
     >;
 };
 
@@ -3203,8 +2955,7 @@ struct BinaryOpLScalarResultType
         Element,
         dimension(),
         type_extents(),
-        typename LayoutOf<R>::Type,
-        is_of_static_extents()
+        typename LayoutOf<R>::Type
     >;
 };
 
