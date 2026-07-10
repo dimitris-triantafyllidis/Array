@@ -136,7 +136,7 @@ class AsyncTaskQueuePool
 
 public:
 
-    AsyncTaskQueuePool(int64_t task_queue_count = 1);
+    explicit AsyncTaskQueuePool(int64_t task_queue_count = 1);
     ~AsyncTaskQueuePool();
 
     template<typename F, typename... Args>
@@ -806,7 +806,7 @@ class Affine
 
 public:
 
-    constexpr Affine(const Extents<D> &extents);
+    constexpr explicit Affine(const Extents<D> &extents);
 
     consteval auto dimension() const -> int64_t;
 
@@ -915,7 +915,7 @@ class Blocked
 
 public:
 
-    constexpr Blocked(const Extents<D> &extents);
+    constexpr explicit Blocked(const Extents<D> &extents);
 
     consteval auto dimension() const -> int64_t;
 
@@ -1051,7 +1051,7 @@ class Morton
 
 public:
 
-    constexpr Morton(const Extents<D> &extents);
+    constexpr explicit Morton(const Extents<D> &extents);
 
     consteval auto dimension() const -> int64_t;
 
@@ -1178,7 +1178,7 @@ public:
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
-    BasicIndexTupleIterator(AReference a);
+    explicit BasicIndexTupleIterator(AReference a);
 
     auto operator*() const -> ElementReference;
 
@@ -1409,7 +1409,7 @@ public:
 
     BasicSliceView() = default;
 
-    BasicSliceView (
+    explicit BasicSliceView (
         AReference array,
         const Extents<A::dimension()> &origin  = make_extents_filled<A::dimension()>(0),
         const Extents<D>              &extents = make_extents_filled<D>(dynamic_extent),
@@ -1768,7 +1768,7 @@ public:
 
     BasicBroadcastView() = default;
 
-    BasicBroadcastView (
+    explicit BasicBroadcastView (
         AReference array,
         const Extents<D> &extents
     );
@@ -2102,7 +2102,7 @@ public:
 
     Array();
 
-    Array(const Extents<D> &extents);
+    explicit Array(const Extents<D> &extents);
 
     template<std::integral... ExtentsPack>
     Array(ExtentsPack... extents_pack);
@@ -2178,51 +2178,70 @@ public:
 
 private:
 
-    L m_layout;
-    ValuePtr<T[]> m_elements;
+    struct Members
+    {
+        Layout layout;
+        ValuePtr<T[]> elements;
+    };
+
+    Members m;
 
 };
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 Array<T, D, E, L, false>::Array()
-: m_elements(nullptr, 0), m_layout(make_extents_filled<D>(0))
+: m {
+    .layout   = Layout(make_extents_filled<D>(0)),
+    .elements = ValuePtr<T[]>(nullptr, 0)
+}
 {}
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 Array<T, D, E, L, false>::Array(const Extents<D> &extents)
-: m_layout(extents)
+: m {
+    .layout = Layout(extents)
+}
 {
     if (!(extents_valid<D>(extents)))
     {
         throw_with_context<std::domain_error>("Domain error. Check source location.");
     }
 
-    m_elements = ValuePtr<T[]>::make(m_layout.size_allocated());
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<std::integral... ExtentsPack>
 Array<T, D, E, L, false>::Array(ExtentsPack... extents_pack)
-: m_layout({int64_t(extents_pack)...})
+: m {
+    .layout = Layout({int64_t(extents_pack)...})
+}
 {
     static_assert(sizeof...(extents_pack) == D);
 
     if (!(extents_valid<D>({int64_t(extents_pack)...})))
     {
-        m_layout = Layout(make_extents_filled<D>(0));
+        m.layout = Layout(make_extents_filled<D>(0));
         throw_with_context<std::domain_error>("Domain error. Check source location.");
     }
 
-    m_elements = ValuePtr<T[]>::make(m_layout.size_allocated());
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 Array<T, D, E, L, false>::Array (
     std::initializer_list<T> l
 ) requires (D == 1)
-: m_layout({int64_t(l.size())})
+: m {
+    .layout =
+        Layout (
+            {
+                int64_t(l.size())
+            }
+        )
+}
 {
-    m_elements = ValuePtr<T[]>::make(m_layout.size_allocated());
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
     array_copy_from_initializer_list(*this, l);
 }
 
@@ -2232,9 +2251,17 @@ Array<T, D, E, L, false>::Array (
         std::initializer_list<T>
     > ll
 ) requires (D == 2)
-: m_layout({int64_t(ll.size()), int64_t(ll.begin()->size())})
+: m {
+    .layout =
+        Layout (
+            {
+                int64_t(ll.size()),
+                int64_t(ll.begin()->size())
+            }
+        )
+}
 {
-    m_elements = ValuePtr<T[]>::make(m_layout.size_allocated());
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
     array_copy_from_initializer_list(*this, ll);
 }
 
@@ -2246,15 +2273,18 @@ Array<T, D, E, L, false>::Array (
         >
     > lll
 ) requires (D == 3)
-: m_layout (
-    {
-        int64_t(lll.size()),
-        int64_t(lll.begin()->size()),
-        int64_t(lll.begin()->begin()->size())
-    }
-)
+: m {
+    .layout =
+        Layout (
+            {
+                int64_t(lll.size()),
+                int64_t(lll.begin()->size()),
+                int64_t(lll.begin()->begin()->size())
+            }
+        )
+}
 {
-    m_elements = ValuePtr<T[]>::make(m_layout.size_allocated());
+    m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
     array_copy_from_initializer_list(*this, lll);
 }
 
@@ -2277,8 +2307,10 @@ Array<T, D, E, L, false>::Array(const A &a) : Array(a.extents())
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename T1>
 Array<T, D, E, L, false>::Array(const Array<T1, D, E, L, false> &other)
-: m_layout(other.layout()),
-  m_elements(ValuePtr<T[]>::make(other.size_allocated()))
+: m {
+    .layout   = other.layout(),
+    .elements = ValuePtr<T[]>::make(other.size_allocated())
+}
 {
     std::copy_n(other.p_elements(), other.size(), p_elements());
 }
@@ -2295,8 +2327,8 @@ auto Array<T, D, E, L, false>::operator=(const Array<T1, D, E, L, false> &other)
         }
     }
 
-    m_layout = other.layout();
-    m_elements = ValuePtr<T[]>::make(other.size_allocated());
+    m.layout = other.layout();
+    m.elements = ValuePtr<T[]>::make(other.size_allocated());
     std::copy_n(other.p_elements(), other.size(), p_elements());
 
     return *this;
@@ -2306,26 +2338,26 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
 auto Array<T, D, E, L, false>::operator[](I... i) const -> const T&
 {
-    return m_elements[m_layout.offset({int64_t(i)...})];
+    return m.elements[m.layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
 auto Array<T, D, E, L, false>::operator[](I... i) -> T&
 {
-    return m_elements[m_layout.offset({int64_t(i)...})];
+    return m.elements[m.layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::operator[](const Extents<D> &indices) const -> const T&
 {
-    return m_elements[m_layout.offset(indices)];
+    return m.elements[m.layout.offset(indices)];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::operator[](const Extents<D> &indices) -> T&
 {
-    return m_elements[m_layout.offset(indices)];
+    return m.elements[m.layout.offset(indices)];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
@@ -2355,43 +2387,43 @@ consteval auto Array<T, D, E, L, false>::type_extents() -> Extents<D>
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::extents() const -> const Extents<D>&
 {
-    return m_layout.extents();
+    return m.layout.extents();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::extents(const int64_t &i) const -> const int64_t&
 {
-    return m_layout.extents()[i];
+    return m.layout.extents()[i];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::layout() const -> const Layout&
 {
-    return m_layout;
+    return m.layout;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::size() const -> int64_t
 {
-    return m_layout.size();
+    return m.layout.size();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::size_allocated() const -> int64_t
 {
-    return m_layout.size_allocated();
+    return m.layout.size_allocated();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::p_elements() const -> const T*
 {
-    return m_elements.get();
+    return m.elements.get();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, false>::p_elements() -> T*
 {
-    return m_elements.get();
+    return m.elements.get();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
@@ -2539,8 +2571,13 @@ public:
 
 private:
 
-    static constexpr Layout s_layout = Layout(E);
-    std::array<T, s_layout.size_allocated()> m_elements;
+    struct Members
+    {
+        static constexpr Layout layout = Layout(E);
+        std::array<T, layout.size_allocated()> elements;
+    };
+
+    Members m;
 
 };
 
@@ -2603,26 +2640,26 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
 constexpr auto Array<T, D, E, L, true>::operator[](I... i) const -> const T&
 {
-    return m_elements[s_layout.offset({int64_t(i)...})];
+    return m.elements[m.layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
 constexpr auto Array<T, D, E, L, true>::operator[](I... i) -> T&
 {
-    return m_elements[s_layout.offset({int64_t(i)...})];
+    return m.elements[m.layout.offset({int64_t(i)...})];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) const -> const T&
 {
-       return m_elements[s_layout.offset(indices)];
+       return m.elements[m.layout.offset(indices)];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L, true>::operator[](const Extents<D> &indices) -> T&
 {
-    return m_elements[s_layout.offset(indices)];
+    return m.elements[m.layout.offset(indices)];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
@@ -2652,37 +2689,37 @@ consteval auto Array<T, D, E, L, true>::type_extents() -> Extents<D>
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L, true>::extents() const -> const Extents<D>&
 {
-    return s_layout.extents();
+    return m.layout.extents();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L, true>::extents(const int64_t &i) const -> const int64_t&
 {
-    return s_layout.extents()[i];
+    return m.layout.extents()[i];
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L, true>::size() const -> int64_t
 {
-    return s_layout.size();
+    return m.layout.size();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L, true>::size_allocated() const -> int64_t
 {
-    return s_layout.size_allocated();
+    return m.layout.size_allocated();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, true>::p_elements() const -> const T*
 {
-    return m_elements.data();
+    return m.elements.data();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 auto Array<T, D, E, L, true>::p_elements() -> T*
 {
-    return m_elements.data();
+    return m.elements.data();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
