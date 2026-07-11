@@ -1,0 +1,22 @@
+CompileFlags:
+  BuiltinHeaders: QueryDriver
+Completion:
+  HeaderInsertion: Never
+Diagnostics:
+  UnusedIncludes: None
+  Suppress: [
+    readability-misleading-indentation
+  ]
+  ClangTidy:
+    CheckOptions:
+      modernize-use-nullptr.NullMacros: 'NULL'
+    Add: [
+      modernize-*,
+      performance-*
+    ]
+    Remove: [
+      modernize-use-trailing-return-type,
+      modernize-use-nodiscard,
+      modernize-avoid-c-arrays,
+      performance-enum-size
+    ]
