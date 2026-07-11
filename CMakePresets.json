@@ -1,0 +1,112 @@
+{
+  "version": 12,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 22,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "windows",
+      "hidden": true,
+      "inherits": "base",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "linux-gcc",
+      "hidden": true,
+      "inherits": "linux",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/gcc.cmake"
+      }
+    },
+    {
+      "name": "linux-clang",
+      "hidden": true,
+      "inherits": "linux",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/clang.cmake"
+      }
+    },
+    {
+      "name": "windows-cl",
+      "hidden": true,
+      "inherits": "windows",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      }
+    },
+    {
+      "name": "debug",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "debug-optimized",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    },
+    {
+      "name": "release",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "lto",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": true
+      }
+    },
+    { "name": "linux-gcc-debug",         "inherits": [ "linux-gcc",   "debug"          ] },
+    { "name": "linux-gcc-release",       "inherits": [ "linux-gcc",   "release"        ] },
+    { "name": "linux-gcc-release-lto",   "inherits": [ "linux-gcc",   "release", "lto" ] },
+    { "name": "linux-clang-debug",       "inherits": [ "linux-clang", "debug"          ] },
+    { "name": "linux-clang-release",     "inherits": [ "linux-clang", "release"        ] },
+    { "name": "linux-clang-release-lto", "inherits": [ "linux-clang", "release", "lto" ] },
+    { "name": "windows-cl-debug",        "inherits": [ "windows-cl",  "debug"          ] },
+    { "name": "windows-cl-release",      "inherits": [ "windows-cl",  "release"        ] },
+    { "name": "windows-cl-release-lto",  "inherits": [ "windows-cl",  "release", "lto" ] }
+  ],
+  "buildPresets": [
+    { "name": "linux-gcc-debug",         "configurePreset": "linux-gcc-debug"         },
+    { "name": "linux-gcc-release",       "configurePreset": "linux-gcc-release"       },
+    { "name": "linux-gcc-release-lto",   "configurePreset": "linux-gcc-release-lto"   },
+    { "name": "linux-clang-debug",       "configurePreset": "linux-clang-debug"       },
+    { "name": "linux-clang-release",     "configurePreset": "linux-clang-release"     },
+    { "name": "linux-clang-release-lto", "configurePreset": "linux-clang-release-lto" },
+    { "name": "windows-cl-debug",        "configurePreset": "windows-cl-debug"        },
+    { "name": "windows-cl-release",      "configurePreset": "windows-cl-release"      },
+    { "name": "windows-cl-release-lto",  "configurePreset": "windows-cl-release-lto"  }
+  ]
+}
