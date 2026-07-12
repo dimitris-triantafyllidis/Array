@@ -3214,7 +3214,7 @@ auto abs(const A &a) -> decltype(auto) { return unary_op ( [](auto x) { return s
 
 template<typename A>
 requires ( ArrayType<A> && A::dimension() == 2 )
-void transpose(A &a, int64_t block_size = 1)
+auto transpose(A &a, int64_t block_size = 1) -> void
 {
     if (
         (a.extents(0) != a.extents(1)) ||
@@ -3236,6 +3236,19 @@ void transpose(A &a, int64_t block_size = 1)
             for(int l = 0; l < block_size; l++)
                 std::swap(a[i + k, j + l], a[j + l, i + k]);
     }
+}
+
+template<typename A>
+requires ( ArrayType<A> && A::dimension() == 2 )
+auto transposed(const A &a) -> A
+{
+    A result(a.extents(1), a.extents(0));
+
+    for(int i = 0; i < result.extents(0); i++)
+    for(int j = 0; j < result.extents(1); j++)
+        result[i, j] = a[j, i];
+
+    return result;
 }
 
 template<typename A>
