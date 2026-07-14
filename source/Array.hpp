@@ -22,6 +22,28 @@
 #include <cmath>
 
 //******************************************************************************
+// Helper function for throwing with source location info
+//******************************************************************************
+
+template<typename E>
+[[noreturn]] constexpr void throw_with_context (
+    const std::string& message,
+    const std::source_location& location = std::source_location::current()
+)
+requires std::constructible_from<E, std::string>
+{
+    std::string full_message =
+        std::format (
+            "{} @ {}:{} — {}",
+            location.function_name(),
+            location.file_name(),
+            location.line(),
+            message
+        );
+    throw E(full_message);
+}
+
+//******************************************************************************
 // AsyncTaskQueue
 //******************************************************************************
 
@@ -38,8 +60,6 @@ public:
 
     auto queue_size() -> int64_t;
 
-    auto stop() -> void;
-
 private:
 
     std::thread                       m_thread;
@@ -49,6 +69,7 @@ private:
     bool                              m_stop = false;
 
     auto thread_loop() -> void;
+    auto stop() -> void;
 
 };
 
@@ -137,14 +158,11 @@ class AsyncTaskQueuePool
 public:
 
     explicit AsyncTaskQueuePool(int64_t task_queue_count = 1);
-    ~AsyncTaskQueuePool();
 
     template<typename F, typename... Args>
     auto enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>;
 
     auto queue_size(int64_t queue_index) -> int64_t;
-
-    auto stop() -> void;
 
 private:
 
@@ -176,24 +194,16 @@ auto AsyncTaskQueuePool::enqueue_task(F&& f, Args&&... args) -> std::future<std:
 #ifdef ARRAY_IMPLEMENTATION
 
 AsyncTaskQueuePool::AsyncTaskQueuePool(int64_t task_queue_count) : m_task_queues(task_queue_count)
-{}
-
-AsyncTaskQueuePool::~AsyncTaskQueuePool()
 {
-    stop();
+    if ( task_queue_count <= 0 )
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
 }
 
 auto AsyncTaskQueuePool::queue_size(int64_t queue_index) -> int64_t
 {
     return m_task_queues[queue_index].queue_size();
-}
-
-auto AsyncTaskQueuePool::stop() -> void
-{
-    for (auto& task_queue : m_task_queues)
-    {
-        task_queue.stop();
-    }
 }
 
 #endif
@@ -227,28 +237,6 @@ template<int64_t N>
 constexpr auto operator==(const Extents<N>& lhs, const Extents<N>& rhs) -> bool
 {
     return std::equal(lhs.begin(), lhs.end(), rhs.begin());
-}
-
-//******************************************************************************
-// Helper function for throwing with source location info
-//******************************************************************************
-
-template<typename E>
-[[noreturn]] constexpr void throw_with_context (
-    const std::string& message,
-    const std::source_location& location = std::source_location::current()
-)
-requires std::constructible_from<E, std::string>
-{
-    std::string full_message =
-        std::format (
-            "{} @ {}:{} — {}",
-            location.function_name(),
-            location.file_name(),
-            location.line(),
-            message
-        );
-    throw E(full_message);
 }
 
 //******************************************************************************
