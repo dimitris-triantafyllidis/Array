@@ -3228,13 +3228,23 @@ auto transpose(A &a, int64_t block_size = 1) -> void
 
 template<typename A>
 requires ( ArrayType<A> && A::dimension() == 2 )
-auto transposed(const A &a) -> A
+auto transposed(const A &a, int64_t block_size = 16) -> A
 {
+    if (
+        (a.extents(0) % block_size != 0) ||
+        (a.extents(1) % block_size != 0)
+    )
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
     A result(a.extents(1), a.extents(0));
 
-    for(int i = 0; i < result.extents(0); i++)
-    for(int j = 0; j < result.extents(1); j++)
-        result[i, j] = a[j, i];
+    for(int64_t i = 0; i < a.extents(0); i += block_size)
+    for(int64_t j = 0; j < a.extents(1); j += block_size)
+        for(int64_t l = j; l < j + block_size; l++)
+        for(int64_t k = i; k < i + block_size; k++)
+            result[l, k] = a[k, l];
 
     return result;
 }
