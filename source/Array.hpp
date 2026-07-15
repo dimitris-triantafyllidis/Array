@@ -44,16 +44,25 @@ requires std::constructible_from<E, std::string>
 }
 
 //******************************************************************************
-// AsyncTaskQueue
+// SingleProducerAsyncTaskQueue
 //******************************************************************************
 
-class AsyncTaskQueue
+/**
+ * A single-producer asynchronous task queue.
+ *
+ * Tasks are submitted only from the owning thread.
+ * Worker threads execute tasks but must not submit new tasks.
+ *
+ * Destruction waits until all queued tasks have completed.
+ */
+
+class SingleProducerAsyncTaskQueue
 {
 
 public:
 
-    AsyncTaskQueue();
-    ~AsyncTaskQueue();
+    SingleProducerAsyncTaskQueue();
+    ~SingleProducerAsyncTaskQueue();
 
     template<typename F, typename... Args>
     auto enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>;
@@ -69,12 +78,11 @@ private:
     bool                              m_stop = false;
 
     auto thread_loop() -> void;
-    auto stop() -> void;
 
 };
 
 template<typename F, typename... Args>
-auto AsyncTaskQueue::enqueue_task(F&& f, Args&&... args)
+auto SingleProducerAsyncTaskQueue::enqueue_task(F&& f, Args&&... args)
     -> std::future<std::invoke_result_t<F, Args...>>
 {
     using ReturnType = std::invoke_result_t<F, Args...>;
@@ -96,23 +104,12 @@ auto AsyncTaskQueue::enqueue_task(F&& f, Args&&... args)
 
 #ifdef ARRAY_IMPLEMENTATION
 
-AsyncTaskQueue::AsyncTaskQueue()
+SingleProducerAsyncTaskQueue::SingleProducerAsyncTaskQueue()
 {
     m_thread = std::thread([this] { thread_loop(); });
 }
 
-AsyncTaskQueue::~AsyncTaskQueue()
-{
-    stop();
-}
-
-auto AsyncTaskQueue::queue_size() -> int64_t
-{
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return m_task_queue.size();
-}
-
-auto AsyncTaskQueue::stop() -> void
+SingleProducerAsyncTaskQueue::~SingleProducerAsyncTaskQueue()
 {
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -125,7 +122,13 @@ auto AsyncTaskQueue::stop() -> void
     }
 }
 
-auto AsyncTaskQueue::thread_loop() -> void
+auto SingleProducerAsyncTaskQueue::queue_size() -> int64_t
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_task_queue.size();
+}
+
+auto SingleProducerAsyncTaskQueue::thread_loop() -> void
 {
     while (true)
     {
@@ -149,15 +152,15 @@ auto AsyncTaskQueue::thread_loop() -> void
 #endif
 
 //******************************************************************************
-// AsyncTaskQueuePool
+// SingleProducerAsyncTaskQueuePool
 //******************************************************************************
 
-class AsyncTaskQueuePool
+class SingleProducerAsyncTaskQueuePool
 {
 
 public:
 
-    explicit AsyncTaskQueuePool(int64_t task_queue_count = 1);
+    explicit SingleProducerAsyncTaskQueuePool(int64_t task_queue_count = 1);
 
     template<typename F, typename... Args>
     auto enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>;
@@ -166,12 +169,12 @@ public:
 
 private:
 
-    std::vector<AsyncTaskQueue> m_task_queues;
+    std::vector<SingleProducerAsyncTaskQueue> m_task_queues;
 
 };
 
 template<typename F, typename... Args>
-auto AsyncTaskQueuePool::enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
+auto SingleProducerAsyncTaskQueuePool::enqueue_task(F&& f, Args&&... args) -> std::future<std::invoke_result_t<F, Args...>>
 {
     int64_t min_queue_size = std::numeric_limits<int64_t>::max();
     int64_t min_queue_size_queue_index = std::numeric_limits<int64_t>::max();
@@ -193,7 +196,7 @@ auto AsyncTaskQueuePool::enqueue_task(F&& f, Args&&... args) -> std::future<std:
 
 #ifdef ARRAY_IMPLEMENTATION
 
-AsyncTaskQueuePool::AsyncTaskQueuePool(int64_t task_queue_count) : m_task_queues(task_queue_count)
+SingleProducerAsyncTaskQueuePool::SingleProducerAsyncTaskQueuePool(int64_t task_queue_count) : m_task_queues(task_queue_count)
 {
     if ( task_queue_count <= 0 )
     {
@@ -201,7 +204,7 @@ AsyncTaskQueuePool::AsyncTaskQueuePool(int64_t task_queue_count) : m_task_queues
     }
 }
 
-auto AsyncTaskQueuePool::queue_size(int64_t queue_index) -> int64_t
+auto SingleProducerAsyncTaskQueuePool::queue_size(int64_t queue_index) -> int64_t
 {
     return m_task_queues[queue_index].queue_size();
 }
