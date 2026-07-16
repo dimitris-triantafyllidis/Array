@@ -2952,10 +2952,16 @@ struct BinaryOpLScalarResultType
 
 template<typename Op, typename A>
 requires ( ArrayType<A> || ViewType<A> )
-auto unary_op(const Op &op, const A &a)
-    -> UnaryOpResultType<Op, A>::Type
+auto unary_op(const Op &op, A &&a)
+    -> UnaryOpResultType <
+        Op,
+        std::remove_cvref_t<A>
+    >::Type
 {
-    typename UnaryOpResultType<Op, A>::Type result;
+    typename UnaryOpResultType <
+        Op,
+        std::remove_cvref_t<A>
+    >::Type result;
 
     if constexpr ( !result.is_of_static_extents() )
     {
@@ -2973,10 +2979,18 @@ auto unary_op(const Op &op, const A &a)
 
 template <typename Op, typename L, typename R>
 requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
-auto binary_op(const Op &op, const L &lhs, const R &rhs)
-    -> BinaryOpResultType<Op, L, R>::Type
+auto binary_op(const Op &op, L &&lhs, R &&rhs)
+    -> BinaryOpResultType <
+        Op,
+        std::remove_cvref_t<L>,
+        std::remove_cvref_t<R>
+    >::Type
 {
-    typename BinaryOpResultType<Op, L, R>::Type result;
+    typename BinaryOpResultType <
+        Op,
+        std::remove_cvref_t<L>,
+        std::remove_cvref_t<R>
+    >::Type result;
 
     if constexpr ( !result.is_of_static_extents() )
     {
@@ -3000,10 +3014,18 @@ auto binary_op(const Op &op, const L &lhs, const R &rhs)
 
 template <typename Op, typename L, typename R>
 requires ((ArrayType<L> || ViewType<L> ) && ScalarNumType<R>)
-auto binary_op_r_scalar(const Op &op, const L &lhs, const R &rhs)
-    -> BinaryOpRScalarResultType<Op, L, R>::Type
+auto binary_op_r_scalar(const Op &op, L &&lhs, R &&rhs)
+    -> BinaryOpRScalarResultType <
+        Op,
+        std::remove_cvref_t<L>,
+        std::remove_cvref_t<R>
+    >::Type
 {
-    typename BinaryOpRScalarResultType<Op, L, R>::Type result;
+    typename BinaryOpRScalarResultType <
+        Op,
+        std::remove_cvref_t<L>,
+        std::remove_cvref_t<R>
+    >::Type result;
 
     if constexpr ( !result.is_of_static_extents() )
     {
@@ -3024,10 +3046,18 @@ auto binary_op_r_scalar(const Op &op, const L &lhs, const R &rhs)
 
 template <typename Op, typename L, typename R>
 requires ((ArrayType<R> || ViewType<R> ) && ScalarNumType<L>)
-auto binary_op_l_scalar(const Op &op, const L &lhs, const R &rhs)
-    -> BinaryOpLScalarResultType<Op, L, R>::Type
+auto binary_op_l_scalar(const Op &op, L &&lhs, R &&rhs)
+    -> BinaryOpLScalarResultType <
+        Op,
+        std::remove_cvref_t<L>,
+        std::remove_cvref_t<R>
+       >::Type
 {
-    typename BinaryOpLScalarResultType<Op, L, R>::Type result;
+    typename BinaryOpLScalarResultType <
+        Op,
+        std::remove_cvref_t<L>,
+        std::remove_cvref_t<R>
+    >::Type result;
 
     if constexpr ( !result.is_of_static_extents() )
     {
