@@ -3085,67 +3085,157 @@ auto binary_op_assign_r_scalar(const Op &op, L &lhs, const R &rhs) -> L&
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
-auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::plus<> {}, lhs, rhs ); }
+auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op (
+        std::plus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
-auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::minus<> {}, lhs, rhs ); }
+auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op (
+        std::minus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
-auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::multiplies<> {}, lhs, rhs ); }
+auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op (
+        std::multiplies<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
-auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::divides<> {}, lhs, rhs ); }
+auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op (
+        std::divides<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
-auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op ( std::modulus<> {}, lhs, rhs ); }
+auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op (
+        std::modulus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 // (Array | View ) op Scalar
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
-auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::plus<> {}, lhs, rhs ); }
+auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_r_scalar (
+        std::plus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
-auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::minus<> {}, lhs, rhs ); }
+auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_r_scalar (
+        std::minus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
-auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::multiplies<> {}, lhs, rhs ); }
+auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_r_scalar (
+        std::multiplies<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
-auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::divides<> {}, lhs, rhs ); }
+auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_r_scalar (
+        std::divides<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
-auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_r_scalar ( std::modulus<> {}, lhs, rhs ); }
+auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_r_scalar (
+        std::modulus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 // Scalar op (Array | View)
 
 template <typename L, typename R>
 requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
-auto operator+(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::plus<> {}, lhs, rhs ); }
+auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_l_scalar (
+        std::plus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
-auto operator-(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::minus<> {}, lhs, rhs ); }
+auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_l_scalar (
+        std::minus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
-auto operator*(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::multiplies<> {}, lhs, rhs ); }
+auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_l_scalar (
+        std::multiplies<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
-auto operator/(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::divides<> {}, lhs, rhs ); }
+auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_l_scalar (
+        std::divides<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 template <typename L, typename R>
 requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
-auto operator%(const L &lhs, const R &rhs) -> decltype(auto) { return binary_op_l_scalar ( std::modulus<> {}, lhs, rhs ); }
+auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
+    return binary_op_l_scalar (
+        std::modulus<> {},
+        std::forward<L>(lhs),
+        std::forward<R>(rhs)
+    );
+}
 
 // Array op-assign Array
 
@@ -3195,11 +3285,24 @@ auto operator%=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar (
 
 template <typename A>
 requires ( ArrayType<A> || ViewType<A> )
-auto operator-(const A &a) -> decltype(auto) { return unary_op ( std::negate<> {}, a ); }
+auto operator-(A &&a) -> decltype(auto) {
+    return unary_op (
+        std::negate<> {},
+        std::forward<A>(a)
+    );
+}
 
 template <typename A>
 requires ( ArrayType<A> || ViewType<A> )
-auto abs(const A &a) -> decltype(auto) { return unary_op ( [](auto x) { return std::abs(x); }, a ); }
+auto abs(A &&a) -> decltype(auto) {
+    return unary_op (
+        [](const auto &x) {
+            using std::abs;
+            return abs(x);
+        },
+        std::forward<A>(a)
+    );
+}
 
 // Transpose a 2D array
 
