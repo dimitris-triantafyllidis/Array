@@ -1419,6 +1419,9 @@ public:
     static consteval auto is_of_static_extents() -> bool;
     static consteval auto type_extents()         -> Extents<D>;
 
+    auto is_identity() const -> bool;
+    auto is_identity_chain() const -> bool;
+
     auto origin() const -> const Extents<A::dimension()>&;
     auto origin(const Extents<A::dimension()> &origin) -> BasicSliceView&;
 
@@ -1525,6 +1528,34 @@ template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 consteval auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::type_extents() -> Extents<D>
 {
     return make_extents_filled<D>(dynamic_extent);
+}
+
+template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
+auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::is_identity() const -> bool
+{
+    if constexpr (dimension() == A::dimension())
+    {
+        return (
+            ( origin()  == make_extents_filled<dimension()>(0) ) &&
+            ( extents() == m_p_array->extents()                ) &&
+            ( strides() == make_extents_filled<dimension()>(1) )
+        );
+    }
+
+    return false;
+}
+
+template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
+auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::is_identity_chain() const -> bool
+{
+    if constexpr (A::is_owning_type())
+    {
+        return is_identity();
+    }
+    else
+    {
+        return is_identity() && m_p_array->is_identity_chain();
+    }
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
@@ -1776,6 +1807,9 @@ public:
     static consteval auto is_of_static_extents() -> bool;
     static consteval auto type_extents()         -> Extents<D>;
 
+    auto is_identity() const -> bool;
+    auto is_identity_chain() const -> bool;
+
     auto extents() const -> const Extents<D>&;
     auto extents(const Extents<D> &extents) -> BasicBroadcastView&;
 
@@ -1851,6 +1885,30 @@ template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexS
 consteval auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::type_extents() -> Extents<D>
 {
     return make_extents_filled<D>(dynamic_extent);
+}
+
+template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::is_identity() const -> bool
+{
+    if constexpr (dimension() == A::dimension())
+    {
+        return extents() == m_p_array->extents();
+    }
+
+    return false;
+}
+
+template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::is_identity_chain() const -> bool
+{
+    if constexpr (A::is_owning_type())
+    {
+        return is_identity();
+    }
+    else
+    {
+        return is_identity() && m_p_array->is_identity_chain();
+    }
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
