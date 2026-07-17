@@ -2036,6 +2036,262 @@ auto make_read_only_broadcast_view (
     return ReadOnlyBroadcastView<A, D, AIndexSubspace>(array, extents);
 }
 
+/**
+ * @brief `BasicIdentityView` class template.
+ *
+ * @tparam A            The array-like type of the object we want the view to refer to, typically an `Array` or another `View`.
+ * @tparam IsReadOnly   Whether the view is read-only.
+ */
+
+template <
+    typename A,
+    bool IsReadOnly
+>
+class BasicIdentityView
+{
+
+public:
+
+    using Element = A::Element;
+
+    using AReference =
+        std::conditional_t <
+            A::is_owning_type(),
+            std::conditional_t<IsReadOnly, const A&, A&>,
+            const A&
+        >;
+
+    using APointer =
+        std::conditional_t <
+            A::is_owning_type(),
+            std::conditional_t<IsReadOnly, const A*, A*>,
+            const A*
+        >;
+
+    using Owning =
+        std::conditional_t <
+            A::is_owning_type(),
+            A,
+            typename A::Owning
+        >;
+
+    using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
+    using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
+
+    BasicIdentityView() = default;
+
+    explicit BasicIdentityView (
+        AReference array
+    );
+
+    template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementReference;
+
+    auto operator[](const Extents<A::dimension()> &indices) const -> ElementReference;
+
+    static consteval auto dimension()            -> int64_t;
+    static consteval auto is_owning_type()       -> bool;
+    static consteval auto is_of_static_extents() -> bool;
+    static consteval auto type_extents()         -> Extents<A::dimension()>;
+
+    auto is_identity() const -> bool;
+    auto is_identity_chain() const -> bool;
+
+    auto extents() const -> const Extents<A::dimension()>&;
+
+    auto extents(const int64_t &i) const -> const int64_t&;
+
+    auto size() const -> int64_t;
+
+    auto map(const Extents<A::dimension()> &indices) const -> Extents<A::dimension()>;
+
+    auto begin() const ->
+        std::conditional_t <
+            IsReadOnly,
+            ReadOnlyIndexTupleIterator<BasicIdentityView>,
+            IndexTupleIterator<BasicIdentityView>
+        >;
+
+    auto cbegin() const -> ReadOnlyIndexTupleIterator<BasicIdentityView>;
+
+    auto end() const ->
+        std::conditional_t <
+            IsReadOnly,
+            ReadOnlyIndexTupleIterator<BasicIdentityView>,
+            IndexTupleIterator<BasicIdentityView>
+        >;
+
+    auto cend() const -> ReadOnlyIndexTupleIterator<BasicIdentityView>;
+
+private:
+
+    APointer m_p_array = nullptr;
+};
+
+template<typename A, bool IsReadOnly>
+BasicIdentityView<A, IsReadOnly>::BasicIdentityView (AReference array)
+: m_p_array ( &array )
+{}
+
+template<typename A, bool IsReadOnly>
+template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...))
+auto BasicIdentityView<A, IsReadOnly>::operator[](I... i) const -> ElementReference
+{
+    return operator[]({int64_t(i)...});
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::operator[](const Extents<A::dimension()> &indices) const -> ElementReference
+{
+    return (*m_p_array)[map(indices)];
+}
+
+template<typename A, bool IsReadOnly>
+consteval auto BasicIdentityView<A, IsReadOnly>::dimension() -> int64_t
+{
+    return A::dimension();
+}
+
+template<typename A, bool IsReadOnly>
+consteval auto BasicIdentityView<A, IsReadOnly>::is_owning_type() -> bool
+{
+    return false;
+}
+
+template<typename A, bool IsReadOnly>
+consteval auto BasicIdentityView<A, IsReadOnly>::is_of_static_extents() -> bool
+{
+    return false;
+}
+
+template<typename A, bool IsReadOnly>
+consteval auto BasicIdentityView<A, IsReadOnly>::type_extents() -> Extents<A::dimension()>
+{
+    return make_extents_filled<A::dimension()>(dynamic_extent);
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::is_identity() const -> bool
+{
+    return true;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::is_identity_chain() const -> bool
+{
+    if constexpr (A::is_owning_type())
+    {
+        return is_identity();
+    }
+    else
+    {
+        return is_identity() && m_p_array->is_identity_chain();
+    }
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::extents() const -> const Extents<A::dimension()>&
+{
+    return m_p_array->extents();
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::extents(const int64_t &i) const -> const int64_t&
+{
+    return m_p_array->extents()[i];
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::size() const -> int64_t
+{
+    return m_p_array->size();
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::map(const Extents<A::dimension()> &view_indices) const -> Extents<A::dimension()>
+{
+    return view_indices;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::begin() const ->
+    std::conditional_t <
+        IsReadOnly,
+        ReadOnlyIndexTupleIterator<BasicIdentityView>,
+        IndexTupleIterator<BasicIdentityView>
+    >
+{
+    return
+        std::conditional_t <
+            IsReadOnly,
+            ReadOnlyIndexTupleIterator<BasicIdentityView>,
+            IndexTupleIterator<BasicIdentityView>
+        >(*this);
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::cbegin() const -> ReadOnlyIndexTupleIterator<BasicIdentityView>
+{
+    return ReadOnlyIndexTupleIterator<BasicIdentityView>(*this);
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::end() const ->
+    std::conditional_t <
+        IsReadOnly,
+        ReadOnlyIndexTupleIterator<BasicIdentityView>,
+        IndexTupleIterator<BasicIdentityView>
+    >
+{
+    std::conditional_t <
+        IsReadOnly,
+        ReadOnlyIndexTupleIterator<BasicIdentityView>,
+        IndexTupleIterator<BasicIdentityView>
+    > it(*this);
+
+    it.carry(true);
+    return it;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIdentityView<A, IsReadOnly>::cend() const -> ReadOnlyIndexTupleIterator<BasicIdentityView>
+{
+    ReadOnlyIndexTupleIterator<BasicIdentityView> it(*this);
+    it.carry(true);
+    return it;
+}
+
+template <
+    typename A,
+    int64_t D = A::dimension(),
+    Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
+>
+using IdentityView = BasicIdentityView<A, false>;
+
+template <
+    typename A,
+    int64_t D = A::dimension(),
+    Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
+>
+using ReadOnlyIdentityView = BasicIdentityView<A, true>;
+
+template<typename A>
+auto make_identity_view (
+    A& array,
+    const Extents<A::dimension()> &extents = make_extents_filled<A::dimension()>(dynamic_extent)
+)
+{
+    return IdentityView<A>(array);
+}
+
+template<typename A>
+auto make_read_only_identity_view (
+    A& array,
+    const Extents<A::dimension()> &extents = make_extents_filled<A::dimension()>(dynamic_extent)
+)
+{
+    return ReadOnlyIdentityView<A>(array);
+}
+
 //******************************************************************************
 // Array class
 //******************************************************************************
@@ -2765,10 +3021,20 @@ concept BroadcastViewType = IsBroadcastViewType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
+struct IsIdentityViewType : std::false_type {};
+
+template <typename A, bool IsReadOnly>
+struct IsIdentityViewType<BasicIdentityView<A, IsReadOnly>> : std::true_type {};
+
+template <typename T>
+concept IdentityViewType = IsIdentityViewType<std::remove_cvref_t<T>>::value;
+
+template <typename T>
 struct IsViewType :
     std::bool_constant <
         IsSliceViewType<T>::value     ||
-        IsBroadcastViewType<T>::value
+        IsBroadcastViewType<T>::value ||
+        IsIdentityViewType<T>::value
     > {};
 
 template <typename T>
