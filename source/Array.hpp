@@ -1341,13 +1341,13 @@ auto BasicIndexTupleIterator<A, IsReadOnly>::p_a() const -> APointer
 template<typename A, bool IsReadOnly>
 auto BasicIndexTupleIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly)
 {
-    return BasicIndexTupleIterator<A, false>(p_a, make_extents_filled<A::dimension()>(0));
+    return BasicIndexTupleIterator<A, false>(p_a);
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicIndexTupleIterator<A, IsReadOnly>::cbegin_of(APointer p_a) -> BasicIndexTupleIterator<A, true>
 {
-    return BasicIndexTupleIterator<A, true>(p_a, make_extents_filled<A::dimension()>(0));
+    return BasicIndexTupleIterator<A, true>(p_a);
 }
 
 template<typename A, bool IsReadOnly>
@@ -1505,25 +1505,25 @@ auto BasicContiguousElementIterator<A, IsReadOnly>::p_e() const -> ElementPointe
 template<typename A, bool IsReadOnly>
 auto BasicContiguousElementIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly)
 {
-    return BasicContiguousElementIterator<A, false>(p_a, 0);
+    return BasicContiguousElementIterator<A, false>(p_a);
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicContiguousElementIterator<A, IsReadOnly>::cbegin_of(APointer p_a) -> BasicContiguousElementIterator<A, true>
 {
-    return BasicContiguousElementIterator<A, true>(p_a, 0);
+    return BasicContiguousElementIterator<A, true>(p_a);
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicContiguousElementIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly)
 {
-    return BasicContiguousElementIterator<A, false>(p_a, p_a->size());
+    return BasicContiguousElementIterator<A, false>(p_a, p_a->size_allocated());
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicContiguousElementIterator<A, IsReadOnly>::cend_of(APointer p_a) -> BasicContiguousElementIterator<A, true>
 {
-    return BasicContiguousElementIterator<A, true>(p_a, p_a->size());
+    return BasicContiguousElementIterator<A, true>(p_a, p_a->size_allocated());
 }
 
 template<typename A>
