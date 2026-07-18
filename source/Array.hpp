@@ -1203,6 +1203,11 @@ public:
 
     auto p_a() const -> APointer;
 
+    static auto begin_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly);
+    static auto cbegin_of(APointer p_a) -> BasicIndexTupleIterator<A, true>;
+    static auto end_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly);
+    static auto cend_of(APointer p_a) -> BasicIndexTupleIterator<A, true>;
+
 private:
 
     APointer                m_p_a       = nullptr;
@@ -1333,6 +1338,34 @@ auto BasicIndexTupleIterator<A, IsReadOnly>::p_a() const -> APointer
     return m_p_a;
 }
 
+template<typename A, bool IsReadOnly>
+auto BasicIndexTupleIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly)
+{
+    return BasicIndexTupleIterator<A, false>(p_a, make_extents_filled<A::dimension()>(0));
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIndexTupleIterator<A, IsReadOnly>::cbegin_of(APointer p_a) -> BasicIndexTupleIterator<A, true>
+{
+    return BasicIndexTupleIterator<A, true>(p_a, make_extents_filled<A::dimension()>(0));
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIndexTupleIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly)
+{
+    BasicIndexTupleIterator<A, false> it(p_a);
+    it.is_at_end(true);
+    return it;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicIndexTupleIterator<A, IsReadOnly>::cend_of(APointer p_a) -> BasicIndexTupleIterator<A, true>
+{
+    BasicIndexTupleIterator<A, true> it(p_a);
+    it.is_at_end(true);
+    return it;
+}
+
 template<typename A>
 using IndexTupleIterator = BasicIndexTupleIterator<A, false>;
 
@@ -1388,6 +1421,12 @@ public:
     auto operator--(int) -> BasicContiguousElementIterator;
 
     auto p_a() const -> APointer;
+    auto p_e() const -> ElementPointer;
+
+    static auto begin_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly);
+    static auto cbegin_of(APointer p_a) -> BasicContiguousElementIterator<A, true>;
+    static auto end_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly);
+    static auto cend_of(APointer p_a) -> BasicContiguousElementIterator<A, true>;
 
 private:
 
@@ -1401,7 +1440,7 @@ auto operator== (
     const BasicContiguousElementIterator<AR, IsReadOnlyR> &rhs
 ) -> bool
 {
-    return lhs.m_p_e == rhs.m_p_e;
+    return lhs.p_e() == rhs.p_e();
 }
 
 template<typename A, bool IsReadOnly>
@@ -1455,6 +1494,36 @@ template<typename A, bool IsReadOnly>
 auto BasicContiguousElementIterator<A, IsReadOnly>::p_a() const -> APointer
 {
     return m_p_a;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::p_e() const -> ElementPointer
+{
+    return m_p_e;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly)
+{
+    return BasicContiguousElementIterator<A, false>(p_a, 0);
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::cbegin_of(APointer p_a) -> BasicContiguousElementIterator<A, true>
+{
+    return BasicContiguousElementIterator<A, true>(p_a, 0);
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly)
+{
+    return BasicContiguousElementIterator<A, false>(p_a, p_a->size());
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::cend_of(APointer p_a) -> BasicContiguousElementIterator<A, true>
+{
+    return BasicContiguousElementIterator<A, true>(p_a, p_a->size());
 }
 
 template<typename A>
