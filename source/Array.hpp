@@ -1203,9 +1203,9 @@ public:
 
     auto p_a() const -> APointer;
 
-    static auto begin_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly);
+    static auto begin_of(APointer p_a) -> BasicIndexTupleIterator<A, IsReadOnly>;
     static auto cbegin_of(APointer p_a) -> BasicIndexTupleIterator<A, true>;
-    static auto end_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly);
+    static auto end_of(APointer p_a) -> BasicIndexTupleIterator<A, IsReadOnly>;
     static auto cend_of(APointer p_a) -> BasicIndexTupleIterator<A, true>;
 
 private:
@@ -1339,9 +1339,9 @@ auto BasicIndexTupleIterator<A, IsReadOnly>::p_a() const -> APointer
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIndexTupleIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly)
+auto BasicIndexTupleIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicIndexTupleIterator<A, IsReadOnly>
 {
-    return BasicIndexTupleIterator<A, false>(p_a);
+    return BasicIndexTupleIterator<A, IsReadOnly>(p_a);
 }
 
 template<typename A, bool IsReadOnly>
@@ -1351,9 +1351,9 @@ auto BasicIndexTupleIterator<A, IsReadOnly>::cbegin_of(APointer p_a) -> BasicInd
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIndexTupleIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicIndexTupleIterator<A, false> requires (!IsReadOnly)
+auto BasicIndexTupleIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicIndexTupleIterator<A, IsReadOnly>
 {
-    BasicIndexTupleIterator<A, false> it(p_a);
+    BasicIndexTupleIterator<A, IsReadOnly> it(p_a);
     it.is_at_end(true);
     return it;
 }
@@ -1423,9 +1423,9 @@ public:
     auto p_a() const -> APointer;
     auto p_e() const -> ElementPointer;
 
-    static auto begin_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly);
+    static auto begin_of(APointer p_a) -> BasicContiguousElementIterator<A, IsReadOnly>;
     static auto cbegin_of(APointer p_a) -> BasicContiguousElementIterator<A, true>;
-    static auto end_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly);
+    static auto end_of(APointer p_a) -> BasicContiguousElementIterator<A, IsReadOnly>;
     static auto cend_of(APointer p_a) -> BasicContiguousElementIterator<A, true>;
 
 private:
@@ -1503,9 +1503,9 @@ auto BasicContiguousElementIterator<A, IsReadOnly>::p_e() const -> ElementPointe
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicContiguousElementIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly)
+auto BasicContiguousElementIterator<A, IsReadOnly>::begin_of(APointer p_a) -> BasicContiguousElementIterator<A, IsReadOnly>
 {
-    return BasicContiguousElementIterator<A, false>(p_a);
+    return BasicContiguousElementIterator<A, IsReadOnly>(p_a);
 }
 
 template<typename A, bool IsReadOnly>
@@ -1515,9 +1515,9 @@ auto BasicContiguousElementIterator<A, IsReadOnly>::cbegin_of(APointer p_a) -> B
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicContiguousElementIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicContiguousElementIterator<A, false> requires (!IsReadOnly)
+auto BasicContiguousElementIterator<A, IsReadOnly>::end_of(APointer p_a) -> BasicContiguousElementIterator<A, IsReadOnly>
 {
-    return BasicContiguousElementIterator<A, false>(p_a, p_a->size_allocated());
+    return BasicContiguousElementIterator<A, IsReadOnly>(p_a, p_a->size_allocated());
 }
 
 template<typename A, bool IsReadOnly>
@@ -1869,13 +1869,13 @@ auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::begin() const ->
             IsReadOnly,
             ReadOnlyIndexTupleIterator<BasicSliceView>,
             IndexTupleIterator<BasicSliceView>
-        >(this);
+        >::begin_of(this);
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::cbegin() const -> ReadOnlyIndexTupleIterator<BasicSliceView>
 {
-    return ReadOnlyIndexTupleIterator<BasicSliceView>(this);
+    return ReadOnlyIndexTupleIterator<BasicSliceView>::cbegin_of(this);
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
@@ -1886,22 +1886,18 @@ auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::end() const ->
         IndexTupleIterator<BasicSliceView>
     >
 {
-    std::conditional_t <
-        IsReadOnly,
-        ReadOnlyIndexTupleIterator<BasicSliceView>,
-        IndexTupleIterator<BasicSliceView>
-    > it(this);
-
-    it.is_at_end(true);
-    return it;
+    return
+        std::conditional_t <
+            IsReadOnly,
+            ReadOnlyIndexTupleIterator<BasicSliceView>,
+            IndexTupleIterator<BasicSliceView>
+        >::end_of(this);
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::cend() const -> ReadOnlyIndexTupleIterator<BasicSliceView>
 {
-    ReadOnlyIndexTupleIterator<BasicSliceView> it(this);
-    it.is_at_end(true);
-    return it;
+    return ReadOnlyIndexTupleIterator<BasicSliceView>::cend_of(this);
 }
 
 template <
@@ -2178,13 +2174,13 @@ auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::begin() const ->
             IsReadOnly,
             ReadOnlyIndexTupleIterator<BasicBroadcastView>,
             IndexTupleIterator<BasicBroadcastView>
-        >(*this);
+        >::begin_of(this);
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
 auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::cbegin() const -> ReadOnlyIndexTupleIterator<BasicBroadcastView>
 {
-    return ReadOnlyIndexTupleIterator<BasicBroadcastView>(*this);
+    return ReadOnlyIndexTupleIterator<BasicBroadcastView>::cbegin_of(this);
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
@@ -2195,22 +2191,18 @@ auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::end() const ->
         IndexTupleIterator<BasicBroadcastView>
     >
 {
-    std::conditional_t <
-        IsReadOnly,
-        ReadOnlyIndexTupleIterator<BasicBroadcastView>,
-        IndexTupleIterator<BasicBroadcastView>
-    > it(*this);
-
-    it.carry(true);
-    return it;
+    return
+        std::conditional_t <
+            IsReadOnly,
+            ReadOnlyIndexTupleIterator<BasicBroadcastView>,
+            IndexTupleIterator<BasicBroadcastView>
+        >::end_of(this);
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
 auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::cend() const -> ReadOnlyIndexTupleIterator<BasicBroadcastView>
 {
-    ReadOnlyIndexTupleIterator<BasicBroadcastView> it(*this);
-    it.carry(true);
-    return it;
+    return ReadOnlyIndexTupleIterator<BasicBroadcastView>::cend_of(this);
 }
 
 template <
@@ -2442,13 +2434,13 @@ auto BasicIdentityView<A, IsReadOnly>::begin() const ->
             IsReadOnly,
             ReadOnlyIndexTupleIterator<BasicIdentityView>,
             IndexTupleIterator<BasicIdentityView>
-        >(*this);
+        >::begin_of(this);
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicIdentityView<A, IsReadOnly>::cbegin() const -> ReadOnlyIndexTupleIterator<BasicIdentityView>
 {
-    return ReadOnlyIndexTupleIterator<BasicIdentityView>(*this);
+    return ReadOnlyIndexTupleIterator<BasicIdentityView>::cbegin_of(this);
 }
 
 template<typename A, bool IsReadOnly>
@@ -2459,22 +2451,18 @@ auto BasicIdentityView<A, IsReadOnly>::end() const ->
         IndexTupleIterator<BasicIdentityView>
     >
 {
-    std::conditional_t <
-        IsReadOnly,
-        ReadOnlyIndexTupleIterator<BasicIdentityView>,
-        IndexTupleIterator<BasicIdentityView>
-    > it(*this);
-
-    it.carry(true);
-    return it;
+    return
+        std::conditional_t <
+            IsReadOnly,
+            ReadOnlyIndexTupleIterator<BasicIdentityView>,
+            IndexTupleIterator<BasicIdentityView>
+        >::end_of(this);
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicIdentityView<A, IsReadOnly>::cend() const -> ReadOnlyIndexTupleIterator<BasicIdentityView>
 {
-    ReadOnlyIndexTupleIterator<BasicIdentityView> it(*this);
-    it.carry(true);
-    return it;
+    return ReadOnlyIndexTupleIterator<BasicIdentityView>::cend_of(this);
 }
 
 template <
@@ -2976,13 +2964,13 @@ constexpr auto Array<T, D, E, L>::p_elements() -> T*
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::begin() -> IndexTupleIterator<Array>
 {
-    return IndexTupleIterator<Array>(this);
+    return IndexTupleIterator<Array>::begin_of(this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::begin() const -> ReadOnlyIndexTupleIterator<Array>
 {
-    return ReadOnlyIndexTupleIterator<Array>(this);
+    return ReadOnlyIndexTupleIterator<Array>::begin_of(this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
@@ -2994,17 +2982,13 @@ constexpr auto Array<T, D, E, L>::cbegin() const -> ReadOnlyIndexTupleIterator<A
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::end() -> IndexTupleIterator<Array>
 {
-    IndexTupleIterator<Array> it(this);
-    it.is_at_end(true);
-    return it;
+    return IndexTupleIterator<Array>::end_of(this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::end() const -> ReadOnlyIndexTupleIterator<Array>
 {
-    ReadOnlyIndexTupleIterator<Array> it(this);
-    it.is_at_end(true);
-    return it;
+    return ReadOnlyIndexTupleIterator<Array>::end_of(this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
