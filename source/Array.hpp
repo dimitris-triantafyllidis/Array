@@ -1345,6 +1345,130 @@ BasicIndexTupleIterator(A&) -> BasicIndexTupleIterator<A, false>;
 template<typename A>
 BasicIndexTupleIterator(const A&) -> BasicIndexTupleIterator<A, true>;
 
+
+// ContiguousElementIterator class
+
+template<typename A, bool IsReadOnly>
+class BasicContiguousElementIterator
+{
+
+public:
+
+    using Element = A::Element;
+
+    using AReference =
+        std::conditional_t <
+            A::is_owning_type(),
+            std::conditional_t<IsReadOnly, const A&, A&>,
+            const A&
+        >;
+
+    using APointer =
+        std::conditional_t <
+            A::is_owning_type(),
+            std::conditional_t<IsReadOnly, const A*, A*>,
+            const A*
+        >;
+
+    using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
+    using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
+
+    explicit BasicContiguousElementIterator() = default;
+
+    explicit BasicContiguousElementIterator (APointer p_a, int64_t offset = 0);
+
+    auto operator*() const -> ElementReference;
+
+    auto operator->() const -> ElementPointer;
+
+    auto operator++() -> BasicContiguousElementIterator&;
+    auto operator++(int) -> BasicContiguousElementIterator;
+
+    auto operator--() -> BasicContiguousElementIterator&;
+    auto operator--(int) -> BasicContiguousElementIterator;
+
+    auto p_a() const -> APointer;
+
+private:
+
+    APointer       m_p_a = nullptr;
+    ElementPointer m_p_e = nullptr;
+};
+
+template<typename AL, bool IsReadOnlyL, typename AR, bool IsReadOnlyR>
+auto operator== (
+    const BasicContiguousElementIterator<AL, IsReadOnlyL> &lhs,
+    const BasicContiguousElementIterator<AR, IsReadOnlyR> &rhs
+) -> bool
+{
+    return lhs.m_p_e == rhs.m_p_e;
+}
+
+template<typename A, bool IsReadOnly>
+BasicContiguousElementIterator<A, IsReadOnly>::BasicContiguousElementIterator(APointer p_a, int64_t offset)
+: m_p_a(p_a), m_p_e(p_a->p_elements() + offset)
+{}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::operator*() const -> ElementReference
+{
+    return *m_p_e;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::operator->() const -> ElementPointer
+{
+    return m_p_e;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::operator++() -> BasicContiguousElementIterator&
+{
+    m_p_e++;
+    return *this;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::operator++(int) -> BasicContiguousElementIterator
+{
+    BasicContiguousElementIterator<A, IsReadOnly> r = *this;
+    ++(*this);
+    return r;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::operator--() -> BasicContiguousElementIterator&
+{
+    m_p_e--;
+    return *this;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::operator--(int) -> BasicContiguousElementIterator
+{
+    BasicContiguousElementIterator<A, IsReadOnly> r = *this;
+    --(*this);
+    return r;
+}
+
+template<typename A, bool IsReadOnly>
+auto BasicContiguousElementIterator<A, IsReadOnly>::p_a() const -> APointer
+{
+    return m_p_a;
+}
+
+template<typename A>
+using ContiguousElementIterator = BasicContiguousElementIterator<A, false>;
+
+template<typename A>
+using ReadOnlyContiguousElementIterator = BasicContiguousElementIterator<A, true>;
+
+template<typename A>
+BasicContiguousElementIterator(A&) -> BasicContiguousElementIterator<A, false>;
+
+template<typename A>
+BasicContiguousElementIterator(const A&) -> BasicContiguousElementIterator<A, true>;
+
 //******************************************************************************
 // View classes
 //******************************************************************************
@@ -1443,6 +1567,8 @@ public:
     auto size() const -> int64_t;
 
     auto map(const Extents<D> &indices) const -> Extents<A::dimension()>;
+
+    constexpr auto p_elements() const -> ElementPointer;
 
     auto begin() const ->
         std::conditional_t <
@@ -1656,6 +1782,12 @@ auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::map(const Extents<D> &
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
+constexpr auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::p_elements() const -> ElementPointer
+{
+    return m_p_array->p_elements();
+}
+
+template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::begin() const ->
     std::conditional_t <
         IsReadOnly,
@@ -1820,6 +1952,8 @@ public:
 
     auto map(const Extents<D> &indices) const -> Extents<A::dimension()>;
 
+    constexpr auto p_elements() const -> ElementPointer;
+
     auto begin() const ->
         std::conditional_t <
             IsReadOnly,
@@ -1954,6 +2088,12 @@ auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::map(const Extents<D> 
     }
 
     return array_indices;
+}
+
+template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+constexpr auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::p_elements() const -> ElementPointer
+{
+    return m_p_array->p_elements();
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
@@ -2093,7 +2233,7 @@ public:
     static consteval auto is_of_static_extents() -> bool;
     static consteval auto type_extents()         -> Extents<A::dimension()>;
 
-    auto is_identity() const -> bool;
+    consteval auto is_identity() const -> bool;
     auto is_identity_chain() const -> bool;
 
     auto extents() const -> const Extents<A::dimension()>&;
@@ -2103,6 +2243,8 @@ public:
     auto size() const -> int64_t;
 
     auto map(const Extents<A::dimension()> &indices) const -> Extents<A::dimension()>;
+
+    constexpr auto p_elements() const -> ElementPointer;
 
     auto begin() const ->
         std::conditional_t <
@@ -2170,7 +2312,7 @@ consteval auto BasicIdentityView<A, IsReadOnly>::type_extents() -> Extents<A::di
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIdentityView<A, IsReadOnly>::is_identity() const -> bool
+consteval auto BasicIdentityView<A, IsReadOnly>::is_identity() const -> bool
 {
     return true;
 }
@@ -2210,6 +2352,12 @@ template<typename A, bool IsReadOnly>
 auto BasicIdentityView<A, IsReadOnly>::map(const Extents<A::dimension()> &view_indices) const -> Extents<A::dimension()>
 {
     return view_indices;
+}
+
+template<typename A, bool IsReadOnly>
+constexpr auto BasicIdentityView<A, IsReadOnly>::p_elements() const -> ElementPointer
+{
+    return m_p_array->p_elements();
 }
 
 template<typename A, bool IsReadOnly>
@@ -3029,6 +3177,7 @@ struct IsIdentityViewType<BasicIdentityView<A, IsReadOnly>> : std::true_type {};
 template <typename T>
 concept IdentityViewType = IsIdentityViewType<std::remove_cvref_t<T>>::value;
 
+
 template <typename T>
 struct IsViewType :
     std::bool_constant <
@@ -3054,7 +3203,21 @@ concept IndexTupleIteratorType = IsIndexTupleIteratorType<std::remove_cvref_t<T>
 
 
 template <typename T>
-struct IsIteratorType : std::bool_constant <IsIndexTupleIteratorType<T>::value> {};
+struct IsContiguousElementIteratorType : std::false_type {};
+
+template <typename A, bool IsReadOnly>
+struct IsContiguousElementIteratorType<BasicContiguousElementIterator<A, IsReadOnly>> : std::true_type {};
+
+template <typename T>
+concept ContiguousElementIteratorType = IsContiguousElementIteratorType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsIteratorType :
+    std::bool_constant <
+        IsIndexTupleIteratorType<T>::value        ||
+        IsContiguousElementIteratorType<T>::value
+    > {};
 
 template <typename T>
 concept IteratorType = IsIteratorType<std::remove_cvref_t<T>>::value;
