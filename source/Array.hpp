@@ -21,6 +21,350 @@
 #include <print>
 #include <cmath>
 
+
+//******************************************************************************
+// Forward declarations
+//******************************************************************************
+
+template<int64_t N>
+struct Extents;
+
+
+// Layout types
+
+template<int64_t D, Extents<D> AxisPermutation>
+class Affine;
+
+template <
+    int64_t D,
+    Extents<D> AxisPermutation,
+    Extents<D> BlockExtents
+>
+class Blocked;
+
+template <int64_t D>
+class Morton;
+
+
+// Iterator types
+
+template<typename A, bool IsReadOnly>
+class BasicIndexTupleIterator;
+
+template<typename A, bool IsReadOnly>
+class BasicContiguousElementIterator;
+
+
+// View types
+
+template <
+    typename A,
+    bool IsReadOnly,
+    int64_t D,
+    Extents<D> ViewIndexSubspace
+>
+class BasicSliceView;
+
+template <
+    typename A,
+    bool IsReadOnly,
+    int64_t D,
+    Extents<A::dimension()> AIndexSubspace
+>
+class BasicBroadcastView;
+
+template <
+    typename A,
+    bool IsReadOnly
+>
+class BasicIdentityView;
+
+
+// Array
+
+template <
+    typename   T,
+    int64_t    D,
+    Extents<D> E,
+    typename   L
+>
+class Array;
+
+
+// Expression node types
+
+template<typename T>
+using Bare = std::remove_cvref_t<T>;
+
+template <typename Op, typename E>
+class UnaryOpNode;
+
+template <typename Op, typename L, typename R>
+requires (
+    ( Bare<L>::dimension() == Bare<R>::dimension() ) &&
+    (
+        !Bare<L>::is_of_static_extents() ||
+        !Bare<R>::is_of_static_extents() ||
+        ( Bare<L>::type_extents() == Bare<R>::type_extents() )
+    )
+)
+class BinaryOpNode;
+
+template <typename Op, typename L, typename R>
+class BinaryOpRScalarNode;
+
+template <typename Op, typename L, typename R>
+class BinaryOpLScalarNode;
+
+//******************************************************************************
+// Concepts for scalar numerical types
+//******************************************************************************
+
+template<typename T, typename U>
+concept SameAsUpToCVRef = std::same_as <
+    std::remove_cvref_t<T>,
+    std::remove_cvref_t<U>
+>;
+
+template<typename T>
+concept ScalarRealSignedIntegerNumType =
+    SameAsUpToCVRef<T, int8_t> ||
+    SameAsUpToCVRef<T, int16_t> ||
+    SameAsUpToCVRef<T, int32_t> ||
+    SameAsUpToCVRef<T, int64_t>;
+
+template<typename T>
+concept ScalarRealUnsignedIntegerNumType =
+    SameAsUpToCVRef<T, uint8_t> ||
+    SameAsUpToCVRef<T, uint16_t> ||
+    SameAsUpToCVRef<T, uint32_t> ||
+    SameAsUpToCVRef<T, uint64_t>;
+
+template<typename T>
+concept ScalarRealIntegerNumType =
+    ScalarRealSignedIntegerNumType<T> || ScalarRealUnsignedIntegerNumType<T>;
+
+template<typename T>
+concept ScalarRealFloatingPointNumType =
+    SameAsUpToCVRef<T, float> ||
+    SameAsUpToCVRef<T, double>;
+
+template<typename T>
+concept ScalarComplexFloatingPointNumType =
+    requires {
+        typename T::value_type;
+    } &&
+    ScalarRealFloatingPointNumType<typename T::value_type> &&
+    SameAsUpToCVRef<T, std::complex<typename T::value_type>>;
+
+template<typename T>
+concept ScalarComplexNumType =
+    ScalarComplexFloatingPointNumType<T>;
+
+template<typename T>
+concept ScalarNumType =
+    ScalarRealIntegerNumType<T> ||
+    ScalarRealFloatingPointNumType<T> ||
+    ScalarComplexNumType<T>;
+
+
+//******************************************************************************
+// Traits and concepts for array and view types
+//******************************************************************************
+
+
+// Layouts
+
+template <typename T>
+struct IsAffineLayoutType : std::false_type {};
+
+template <int64_t D, Extents<D> AxisPermutation>
+struct IsAffineLayoutType<Affine<D, AxisPermutation>> : std::true_type {};
+
+template <typename T>
+concept AffineLayoutType = IsAffineLayoutType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBlockedLayoutType : std::false_type {};
+
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
+struct IsBlockedLayoutType<Blocked<D, AxisPermutation, BlockExtents>> : std::true_type {};
+
+template <typename T>
+concept BlockedLayoutType = IsBlockedLayoutType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsMortonLayoutType : std::false_type {};
+
+template <int64_t D>
+struct IsMortonLayoutType<Morton<D>> : std::true_type {};
+
+template <typename T>
+concept MortonLayoutType = IsMortonLayoutType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsLayoutType :
+    std::bool_constant <
+        IsAffineLayoutType<T>::value  ||
+        IsBlockedLayoutType<T>::value ||
+        IsMortonLayoutType<T>::value
+    > {};
+
+template <typename T>
+concept LayoutType = IsLayoutType<std::remove_cvref_t<T>>::value;
+
+
+// Iterators
+
+template <typename T>
+struct IsIndexTupleIteratorType : std::false_type {};
+
+template <typename A, bool IsReadOnly>
+struct IsIndexTupleIteratorType<BasicIndexTupleIterator<A, IsReadOnly>> : std::true_type {};
+
+template <typename T>
+concept IndexTupleIteratorType = IsIndexTupleIteratorType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsContiguousElementIteratorType : std::false_type {};
+
+template <typename A, bool IsReadOnly>
+struct IsContiguousElementIteratorType<BasicContiguousElementIterator<A, IsReadOnly>> : std::true_type {};
+
+template <typename T>
+concept ContiguousElementIteratorType = IsContiguousElementIteratorType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsIteratorType :
+    std::bool_constant <
+        IsIndexTupleIteratorType<T>::value        ||
+        IsContiguousElementIteratorType<T>::value
+    > {};
+
+template <typename T>
+concept IteratorType = IsIteratorType<std::remove_cvref_t<T>>::value;
+
+
+// Views
+
+template <typename T>
+struct IsSliceViewType : std::false_type {};
+
+template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
+struct IsSliceViewType<BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>> : std::true_type {};
+
+template <typename T>
+concept SliceViewType = IsSliceViewType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBroadcastViewType : std::false_type {};
+
+template <typename A, bool IsReadOnly, int64_t D, Extents<D> AIndexSubspace>
+struct IsBroadcastViewType<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>> : std::true_type {};
+
+template <typename T>
+concept BroadcastViewType = IsBroadcastViewType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsIdentityViewType : std::false_type {};
+
+template <typename A, bool IsReadOnly>
+struct IsIdentityViewType<BasicIdentityView<A, IsReadOnly>> : std::true_type {};
+
+template <typename T>
+concept IdentityViewType = IsIdentityViewType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsViewType :
+    std::bool_constant <
+        IsSliceViewType<T>::value     ||
+        IsBroadcastViewType<T>::value ||
+        IsIdentityViewType<T>::value
+    > {};
+
+template <typename T>
+concept ViewType = IsViewType<std::remove_cvref_t<T>>::value;
+
+
+// Arrays
+
+template <typename T>
+struct IsArrayType : std::false_type {};
+
+template <typename T, int64_t D, Extents<D> E, typename L>
+struct IsArrayType<Array<T, D, E, L>> : std::true_type {};
+
+template <typename T>
+concept ArrayType = IsArrayType<std::remove_cvref_t<T>>::value;
+
+
+//******************************************************************************
+// Traits and concepts for expression node types
+//******************************************************************************
+
+template <typename T>
+struct IsUnaryOpNodeType : std::false_type {};
+
+template <typename Op, typename E>
+struct IsUnaryOpNodeType<UnaryOpNode<Op, E>> : std::true_type {};
+
+template <typename T>
+concept UnaryOpNodeType = IsUnaryOpNodeType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBinaryOpNodeType : std::false_type {};
+
+template <typename Op, typename L, typename R>
+struct IsBinaryOpNodeType<BinaryOpNode<Op, L, R>> : std::true_type {};
+
+template <typename T>
+concept BinaryOpNodeType = IsBinaryOpNodeType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBinaryOpRScalarNodeType : std::false_type {};
+
+template <typename Op, typename L, typename R>
+struct IsBinaryOpRScalarNodeType<BinaryOpRScalarNode<Op, L, R>> : std::true_type {};
+
+template <typename T>
+concept BinaryOpRScalarNodeType = IsBinaryOpRScalarNodeType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsBinaryOpLScalarNodeType : std::false_type {};
+
+template <typename Op, typename L, typename R>
+struct IsBinaryOpLScalarNodeType<BinaryOpLScalarNode<Op, L, R>> : std::true_type {};
+
+template <typename T>
+concept BinaryOpLScalarNodeType = IsBinaryOpLScalarNodeType<std::remove_cvref_t<T>>::value;
+
+
+template <typename T>
+struct IsExpressionNodeType :
+    std::bool_constant <
+        IsUnaryOpNodeType<T>::value         ||
+        IsBinaryOpNodeType<T>::value        ||
+        IsBinaryOpRScalarNodeType<T>::value ||
+        IsBinaryOpLScalarNodeType<T>::value ||
+        IsArrayType<T>::value               ||
+        IsViewType<T>::value
+    > {};
+
+template <typename T>
+concept ExpressionNodeType = IsExpressionNodeType<std::remove_cvref_t<T>>::value;
+
+
 //******************************************************************************
 // Helper function for throwing with source location info
 //******************************************************************************
@@ -2629,6 +2973,14 @@ public:
 
     using Owning = Array;
 
+    static consteval auto dimension() -> int64_t;
+
+    static consteval auto is_owning_type() -> bool;
+
+    static consteval auto is_of_static_extents() -> bool;
+
+    static consteval auto type_extents() -> Extents<D>;
+
     Array();
 
     explicit Array(const Extents<D> &extents) requires (all_of_extents_dynamic(E));
@@ -2655,31 +3007,28 @@ public:
         > lll
     ) requires (D == 3);
 
-    template<typename A>
-    requires
-        requires { { A::is_owning_type() } -> std::convertible_to<bool>; } &&
-        ( A::is_owning_type() == false )
-    Array (const A &a);
+    template<ViewType V>
+    Array(const V &v);
 
     template<typename T1>
     Array(const Array<T1, D, E, L> &other);
 
+    template<typename Exp>
+    requires ( ExpressionNodeType<Exp> && !ArrayType<Exp> && !ViewType<Exp> )
+    Array(const Exp &e);
+
     template<typename T1>
     auto operator=(const Array<T1, D, E, L> &other) -> Array&;
+
+    template<typename Exp>
+    requires ( ExpressionNodeType<Exp> && !ArrayType<Exp> && !ViewType<Exp> )
+    auto operator=(const Exp &e) -> Array&;
 
     template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) constexpr auto operator[](I... i) const -> const T&;
     template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) constexpr auto operator[](I... i) -> T&;
 
     constexpr auto operator[](const Extents<D> &indices) const -> const T&;
     constexpr auto operator[](const Extents<D> &indices) -> T&;
-
-    static consteval auto dimension() -> int64_t;
-
-    static consteval auto is_owning_type() -> bool;
-
-    static consteval auto is_of_static_extents() -> bool;
-
-    static consteval auto type_extents() -> Extents<D>;
 
     constexpr auto extents() const -> const Extents<D>&;
     constexpr auto extents(const int64_t &i) const -> const int64_t&;
@@ -2711,6 +3060,30 @@ private:
     ArrayMembers<T, D, E, L, all_of_extents_static(E)> m;
 
 };
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+consteval auto Array<T, D, E, L>::dimension() -> int64_t
+{
+    return D;
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+consteval auto Array<T, D, E, L>::is_owning_type() -> bool
+{
+    return true;
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+consteval auto Array<T, D, E, L>::is_of_static_extents() -> bool
+{
+    return all_of_extents_static(E);
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+consteval auto Array<T, D, E, L>::type_extents() -> Extents<D>
+{
+    return E;
+}
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 Array<T, D, E, L>::Array()
@@ -2813,14 +3186,10 @@ constexpr Array<T, D, E, L>::Array (
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-template<typename A>
-requires
-    requires
-    { { A::is_owning_type() } -> std::convertible_to<bool>; } &&
-    ( A::is_owning_type() == false )
-Array<T, D, E, L>::Array(const A &a) : Array(a.extents())
+template<ViewType V>
+Array<T, D, E, L>::Array(const V &v) : Array(v.extents())
 {
-    ReadOnlyIndexTupleIterator view_it(a);
+    ReadOnlyIndexTupleIterator view_it(v);
     IndexTupleIterator it(*this);
 
     for (int64_t i = 0; i < size(); i++)
@@ -2842,6 +3211,29 @@ Array<T, D, E, L>::Array(const Array<T1, D, E, L> &other)
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
+template<typename Exp>
+requires ( ExpressionNodeType<Exp> && !ArrayType<Exp> && !ViewType<Exp> )
+Array<T, D, E, L>::Array(const Exp &e)
+{
+    if constexpr (!is_of_static_extents())
+    {
+        m.layout = Layout(e.extents());
+        m.elements = ValuePtr<T[]>::make(m.layout.size_allocated());
+    }
+    else if (extents() != e.extents())
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    auto it = begin();
+
+    for (int64_t i = 0; i < size(); i++)
+    {
+        *it++ = e[it.cursor()];
+    }
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
 template<typename T1>
 auto Array<T, D, E, L>::operator=(const Array<T1, D, E, L> &other) -> Array&
 {
@@ -2859,6 +3251,34 @@ auto Array<T, D, E, L>::operator=(const Array<T1, D, E, L> &other) -> Array&
         m.elements = ValuePtr<T[]>::make(other.size_allocated());
     }
     std::copy_n(other.p_elements(), other.size(), p_elements());
+
+    return *this;
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+template<typename Exp>
+requires ( ExpressionNodeType<Exp> && !ArrayType<Exp> && !ViewType<Exp> )
+auto Array<T, D, E, L>::operator=(const Exp &e) -> Array&
+{
+    if constexpr (!is_of_static_extents())
+    {
+        if (extents() != e.extents())
+        {
+            Array resized = Array(e.extents());
+            std::swap(*this, resized);
+        }
+    }
+    else if (extents() != e.extents())
+    {
+        throw_with_context<std::domain_error>("Domain error. Check source location.");
+    }
+
+    auto it = begin();
+
+    for (int64_t i = 0; i < size(); i++)
+    {
+        *it++ = e[it.cursor()];
+    }
 
     return *this;
 }
@@ -2887,30 +3307,6 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::operator[](const Extents<D> &indices) -> T&
 {
     return m.elements[m.layout.offset(indices)];
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L>::dimension() -> int64_t
-{
-    return D;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L>::is_owning_type() -> bool
-{
-    return true;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L>::is_of_static_extents() -> bool
-{
-    return all_of_extents_static(E);
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L>::type_extents() -> Extents<D>
-{
-    return E;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
@@ -3014,6 +3410,8 @@ auto Array<T, D, E, L>::resize(const Extents<D> &extents) -> void requires (all_
     );
 
     Array resized = Array(extents);
+
+    std::println("!!!{}", intersection_view.size());
 
     for (auto it = intersection_view.cbegin(); it != intersection_view.cend(); it++)
     {
@@ -3132,195 +3530,7 @@ public:
 };
 
 //******************************************************************************
-// Concepts for scalar numerical types
-//******************************************************************************
-
-template<typename T, typename U>
-concept SameAsUpToCVRef = std::same_as <
-    std::remove_cvref_t<T>,
-    std::remove_cvref_t<U>
->;
-
-template<typename T>
-concept ScalarRealSignedIntegerNumType =
-    SameAsUpToCVRef<T, int8_t> ||
-    SameAsUpToCVRef<T, int16_t> ||
-    SameAsUpToCVRef<T, int32_t> ||
-    SameAsUpToCVRef<T, int64_t>;
-
-template<typename T>
-concept ScalarRealUnsignedIntegerNumType =
-    SameAsUpToCVRef<T, uint8_t> ||
-    SameAsUpToCVRef<T, uint16_t> ||
-    SameAsUpToCVRef<T, uint32_t> ||
-    SameAsUpToCVRef<T, uint64_t>;
-
-template<typename T>
-concept ScalarRealIntegerNumType =
-    ScalarRealSignedIntegerNumType<T> || ScalarRealUnsignedIntegerNumType<T>;
-
-template<typename T>
-concept ScalarRealFloatingPointNumType =
-    SameAsUpToCVRef<T, float> ||
-    SameAsUpToCVRef<T, double>;
-
-template<typename T>
-concept ScalarComplexFloatingPointNumType =
-    requires {
-        typename T::value_type;
-    } &&
-    ScalarRealFloatingPointNumType<typename T::value_type> &&
-    SameAsUpToCVRef<T, std::complex<typename T::value_type>>;
-
-template<typename T>
-concept ScalarComplexNumType =
-    ScalarComplexFloatingPointNumType<T>;
-
-template<typename T>
-concept ScalarNumType =
-    ScalarRealIntegerNumType<T> ||
-    ScalarRealFloatingPointNumType<T> ||
-    ScalarComplexNumType<T>;
-
-//******************************************************************************
-// Traits and concepts for array and view types
-//******************************************************************************
-
-
-// Arrays
-
-template <typename T>
-struct IsArrayType : std::false_type {};
-
-template <typename T, int64_t D, Extents<D> E, typename L>
-struct IsArrayType<Array<T, D, E, L>> : std::true_type {};
-
-template <typename T>
-concept ArrayType = IsArrayType<std::remove_cvref_t<T>>::value;
-
-
-// Views
-
-template <typename T>
-struct IsSliceViewType : std::false_type {};
-
-template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-struct IsSliceViewType<BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>> : std::true_type {};
-
-template <typename T>
-concept SliceViewType = IsSliceViewType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsBroadcastViewType : std::false_type {};
-
-template <typename A, bool IsReadOnly, int64_t D, Extents<D> AIndexSubspace>
-struct IsBroadcastViewType<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>> : std::true_type {};
-
-template <typename T>
-concept BroadcastViewType = IsBroadcastViewType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsIdentityViewType : std::false_type {};
-
-template <typename A, bool IsReadOnly>
-struct IsIdentityViewType<BasicIdentityView<A, IsReadOnly>> : std::true_type {};
-
-template <typename T>
-concept IdentityViewType = IsIdentityViewType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsViewType :
-    std::bool_constant <
-        IsSliceViewType<T>::value     ||
-        IsBroadcastViewType<T>::value ||
-        IsIdentityViewType<T>::value
-    > {};
-
-template <typename T>
-concept ViewType = IsViewType<std::remove_cvref_t<T>>::value;
-
-
-// Iterators
-
-template <typename T>
-struct IsIndexTupleIteratorType : std::false_type {};
-
-template <typename A, bool IsReadOnly>
-struct IsIndexTupleIteratorType<BasicIndexTupleIterator<A, IsReadOnly>> : std::true_type {};
-
-template <typename T>
-concept IndexTupleIteratorType = IsIndexTupleIteratorType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsContiguousElementIteratorType : std::false_type {};
-
-template <typename A, bool IsReadOnly>
-struct IsContiguousElementIteratorType<BasicContiguousElementIterator<A, IsReadOnly>> : std::true_type {};
-
-template <typename T>
-concept ContiguousElementIteratorType = IsContiguousElementIteratorType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsIteratorType :
-    std::bool_constant <
-        IsIndexTupleIteratorType<T>::value        ||
-        IsContiguousElementIteratorType<T>::value
-    > {};
-
-template <typename T>
-concept IteratorType = IsIteratorType<std::remove_cvref_t<T>>::value;
-
-
-// Layouts
-
-template <typename T>
-struct IsAffineLayoutType : std::false_type {};
-
-template <int64_t D, Extents<D> AxisPermutation>
-struct IsAffineLayoutType<Affine<D, AxisPermutation>> : std::true_type {};
-
-template <typename T>
-concept AffineLayoutType = IsAffineLayoutType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsBlockedLayoutType : std::false_type {};
-
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-struct IsBlockedLayoutType<Blocked<D, AxisPermutation, BlockExtents>> : std::true_type {};
-
-template <typename T>
-concept BlockedLayoutType = IsBlockedLayoutType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsMortonLayoutType : std::false_type {};
-
-template <int64_t D>
-struct IsMortonLayoutType<Morton<D>> : std::true_type {};
-
-template <typename T>
-concept MortonLayoutType = IsMortonLayoutType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
-struct IsLayoutType :
-    std::bool_constant <
-        IsAffineLayoutType<T>::value  ||
-        IsBlockedLayoutType<T>::value ||
-        IsMortonLayoutType<T>::value
-    > {};
-
-template <typename T>
-concept LayoutType = IsLayoutType<std::remove_cvref_t<T>>::value;
-
-//******************************************************************************
-// Compute result types
+// Expression templates
 //******************************************************************************
 
 template<class T, bool IsView = ViewType<T>>
@@ -3338,69 +3548,86 @@ struct LayoutOf<T, false>
     using Type = typename T::Layout;
 };
 
-template<typename Op, typename A>
-requires (
-    ( ArrayType<A> || ViewType<A> )
-)
-struct UnaryOpResultType
-{
-    using OpIn  = typename A::Element;
-    using OpOut = std::invoke_result_t<Op, OpIn>;
-
-    using Type = Array <
-        OpOut,
-        A::dimension(),
-        A::type_extents(),
-        typename LayoutOf<A>::Type
+template <typename T>
+using ExpressionNodeMemberStorage =
+    std::conditional_t <
+        std::is_lvalue_reference_v<T>,
+        T,
+        std::remove_cvref_t<T>
     >;
-};
 
-template<typename Op, typename L, typename R>
-requires (
-    ( ArrayType<L> || ViewType<L> ) &&
-    ( ArrayType<R> || ViewType<R> ) &&
-    ( L::dimension() == R::dimension() ) &&
-    (
-        !L::is_of_static_extents() ||
-        !R::is_of_static_extents() ||
-        ( L::type_extents() == R::type_extents() )
-    ) &&
-    (
-        ViewType<L> ||
-        ViewType<R> ||
-        std::same_as<typename L::Layout, typename R::Layout>
-    )
-)
-struct BinaryOpResultType
-{
+template <typename Op, typename E>
+class UnaryOpNode {
+
+public:
+
     using Element = decltype (
         Op {} (
-            std::declval<typename L::Element>(),
-            std::declval<typename R::Element>()
+            std::declval<typename Bare<E>::Element>()
         )
     );
 
     static consteval auto dimension() -> int64_t {
-        return L::dimension();
+        return Bare<E>::dimension();
     }
 
-    using Layout =
-        std::conditional_t <
-            ViewType<L>,
-            typename LayoutOf<R>::Type,
-            typename LayoutOf<L>::Type
-        >;
+    UnaryOpNode(Op &&op, E &&e)
+    : m_op ( std::forward<Op> ( op ) ),
+      m_e  ( std::forward<E>  ( e  ) )
+    {}
+
+    auto operator[](const Extents<dimension()> &indices) const -> Element {
+        return m_op(m_e[indices]);
+    }
+
+    constexpr auto extents() const -> Extents<dimension()> {
+        return m_e.extents();
+    }
+
+private:
+
+    ExpressionNodeMemberStorage<Op> m_op;
+    ExpressionNodeMemberStorage<E>  m_e;
+
+};
+
+template <typename Op, typename E>
+UnaryOpNode(Op&&, E&&) -> UnaryOpNode<Op, E>;
+
+template <typename Op, typename L, typename R>
+requires (
+    ( Bare<L>::dimension() == Bare<R>::dimension() ) &&
+    (
+        !Bare<L>::is_of_static_extents() ||
+        !Bare<R>::is_of_static_extents() ||
+        ( Bare<L>::type_extents() == Bare<R>::type_extents() )
+    )
+)
+class BinaryOpNode {
+
+public:
+
+    using Element = decltype (
+        Op {} (
+            std::declval<typename Bare<L>::Element>(),
+            std::declval<typename Bare<R>::Element>()
+        )
+    );
+
+    static consteval auto dimension() -> int64_t {
+        return Bare<L>::dimension();
+    }
 
     static consteval auto is_of_static_extents() -> bool {
         return
-            L::is_of_static_extents() &&
-            R::is_of_static_extents();
+            Bare<L>::is_of_static_extents() &&
+            Bare<R>::is_of_static_extents();
     }
 
     static consteval auto type_extents() -> Extents<dimension()> {
         if constexpr (is_of_static_extents())
         {
-            return L::type_extents();
+            return Bare<L>::type_extents();
         }
         else
         {
@@ -3408,36 +3635,52 @@ struct BinaryOpResultType
         }
     }
 
-    using Type = Array <
-        Element,
-        dimension(),
-        type_extents(),
-        Layout
-    >;
+    BinaryOpNode(Op &&op, L &&l, R &&r)
+    : m_op ( std::forward<Op> ( op ) ),
+      m_l  ( std::forward<L>  ( l  ) ),
+      m_r  ( std::forward<R>  ( r  ) )
+    {}
+
+    auto operator[](const Extents<dimension()> &indices) const -> Element {
+        return m_op(m_l[indices], m_r[indices]);
+    }
+
+    constexpr auto extents() const -> Extents<dimension()> {
+        return m_l.extents();
+    }
+
+private:
+
+    ExpressionNodeMemberStorage<Op> m_op;
+    ExpressionNodeMemberStorage<L>  m_l;
+    ExpressionNodeMemberStorage<R>  m_r;
+
 };
 
-template<typename Op, typename L, typename R>
-requires (
-    ( ArrayType<L> || ViewType<L> ) && ScalarNumType<R>
-)
-struct BinaryOpRScalarResultType
-{
+template <typename Op, typename L, typename R>
+BinaryOpNode(Op&&, L&&, R&&) -> BinaryOpNode<Op, L, R>;
+
+template <typename Op, typename L, typename R>
+class BinaryOpRScalarNode {
+
+public:
+
     using Element = decltype (
-        Op {} ( std::declval<typename L::Element>(), std::declval<R>() )
+        Op {} ( std::declval<typename Bare<L>::Element>(), std::declval<R>() )
     );
 
     static consteval auto dimension() -> int64_t {
-        return L::dimension();
+        return Bare<L>::dimension();
     }
 
     static consteval auto is_of_static_extents() -> bool {
-        return L::is_of_static_extents();
+        return Bare<L>::is_of_static_extents();
     }
 
     static consteval auto type_extents() -> Extents<dimension()> {
         if constexpr (is_of_static_extents())
         {
-            return L::type_extents();
+            return Bare<L>::type_extents();
         }
         else
         {
@@ -3445,36 +3688,52 @@ struct BinaryOpRScalarResultType
         }
     }
 
-    using Type = Array <
-        Element,
-        dimension(),
-        type_extents(),
-        typename LayoutOf<L>::Type
-    >;
+    BinaryOpRScalarNode(Op &&op, L &&l, R &&r)
+    : m_op ( std::forward<Op> ( op ) ),
+      m_l  ( std::forward<L>  ( l  ) ),
+      m_r  ( std::forward<R>  ( r  ) )
+    {}
+
+    auto operator[](const Extents<Bare<L>::dimension()> &indices) const -> Element {
+        return m_op(m_l[indices], m_r);
+    }
+
+    constexpr auto extents() const -> Extents<dimension()> {
+        return m_l.extents();
+    }
+
+private:
+
+    ExpressionNodeMemberStorage<Op> m_op;
+    ExpressionNodeMemberStorage<L>  m_l;
+    ExpressionNodeMemberStorage<R>  m_r;
+
 };
 
-template<typename Op, typename L, typename R>
-requires (
-    ( ArrayType<R> || ViewType<R> ) && ScalarNumType<L>
-)
-struct BinaryOpLScalarResultType
-{
+template <typename Op, typename L, typename R>
+BinaryOpRScalarNode(Op&&, L&&, R&&) -> BinaryOpRScalarNode<Op, L, R>;
+
+template <typename Op, typename L, typename R>
+class BinaryOpLScalarNode {
+
+public:
+
     using Element = decltype (
-        Op {} ( std::declval<typename R::Element>(), std::declval<L>() )
+        Op {} ( std::declval<typename Bare<R>::Element>(), std::declval<L>() )
     );
 
     static consteval auto dimension() -> int64_t {
-        return R::dimension();
+        return Bare<R>::dimension();
     }
 
     static consteval auto is_of_static_extents() -> bool {
-        return R::is_of_static_extents();
+        return Bare<R>::is_of_static_extents();
     }
 
     static consteval auto type_extents() -> Extents<dimension()> {
         if constexpr (is_of_static_extents())
         {
-            return R::type_extents();
+            return Bare<R>::type_extents();
         }
         else
         {
@@ -3482,139 +3741,34 @@ struct BinaryOpLScalarResultType
         }
     }
 
-    using Type = Array <
-        Element,
-        dimension(),
-        type_extents(),
-        typename LayoutOf<R>::Type
-    >;
+    BinaryOpLScalarNode(Op &&op, L &&l, R &&r)
+    : m_op ( std::forward<Op> ( op ) ),
+      m_l  ( std::forward<L>  ( l  ) ),
+      m_r  ( std::forward<R>  ( r  ) )
+    {}
+
+    auto operator[](const Extents<Bare<R>::dimension()> &indices) const -> Element {
+        return m_op(m_l, m_r[indices]);
+    }
+
+    constexpr auto extents() const -> Extents<dimension()> {
+        return m_r.extents();
+    }
+
+private:
+
+    ExpressionNodeMemberStorage<Op> m_op;
+    ExpressionNodeMemberStorage<L>  m_l;
+    ExpressionNodeMemberStorage<R>  m_r;
+
 };
 
-template<typename Op, typename A>
-requires ( ArrayType<A> || ViewType<A> )
-auto unary_op(const Op &op, A &&a)
-    -> UnaryOpResultType <
-        Op,
-        std::remove_cvref_t<A>
-    >::Type
-{
-    typename UnaryOpResultType <
-        Op,
-        std::remove_cvref_t<A>
-    >::Type result;
-
-    if constexpr ( !result.is_of_static_extents() )
-    {
-        result.resize(a.extents());
-    }
-
-    std::transform (
-        a.cbegin(), a.cend(),
-        result.begin(),
-        op
-    );
-
-    return result;
-}
-
 template <typename Op, typename L, typename R>
-requires ((ArrayType<L> || ViewType<L>) && (ArrayType<R> || ViewType<R>))
-auto binary_op(const Op &op, L &&lhs, R &&rhs)
-    -> BinaryOpResultType <
-        Op,
-        std::remove_cvref_t<L>,
-        std::remove_cvref_t<R>
-    >::Type
-{
-    typename BinaryOpResultType <
-        Op,
-        std::remove_cvref_t<L>,
-        std::remove_cvref_t<R>
-    >::Type result;
+BinaryOpLScalarNode(Op&&, L&&, R&&) -> BinaryOpLScalarNode<Op, L, R>;
 
-    if constexpr ( !result.is_of_static_extents() )
-    {
-        if (lhs.extents() != rhs.extents())
-        {
-            throw_with_context<std::domain_error>("Domain error. Check source location.");
-        }
-
-        result.resize(lhs.extents());
-    }
-
-    std::transform (
-        lhs.cbegin(), lhs.cend(),
-        rhs.cbegin(),
-        result.begin(),
-        op
-    );
-
-    return result;
-}
-
-template <typename Op, typename L, typename R>
-requires ((ArrayType<L> || ViewType<L> ) && ScalarNumType<R>)
-auto binary_op_r_scalar(const Op &op, L &&lhs, R &&rhs)
-    -> BinaryOpRScalarResultType <
-        Op,
-        std::remove_cvref_t<L>,
-        std::remove_cvref_t<R>
-    >::Type
-{
-    typename BinaryOpRScalarResultType <
-        Op,
-        std::remove_cvref_t<L>,
-        std::remove_cvref_t<R>
-    >::Type result;
-
-    if constexpr ( !result.is_of_static_extents() )
-    {
-        result.resize(lhs.extents());
-    }
-
-    auto lhs_it = lhs.cbegin();
-    auto result_it = result.begin();
-
-    while ( lhs_it != lhs.cend() )
-    {
-        *result_it = op(*lhs_it, rhs);
-        lhs_it++; result_it++;
-    }
-
-    return result;
-}
-
-template <typename Op, typename L, typename R>
-requires ((ArrayType<R> || ViewType<R> ) && ScalarNumType<L>)
-auto binary_op_l_scalar(const Op &op, L &&lhs, R &&rhs)
-    -> BinaryOpLScalarResultType <
-        Op,
-        std::remove_cvref_t<L>,
-        std::remove_cvref_t<R>
-       >::Type
-{
-    typename BinaryOpLScalarResultType <
-        Op,
-        std::remove_cvref_t<L>,
-        std::remove_cvref_t<R>
-    >::Type result;
-
-    if constexpr ( !result.is_of_static_extents() )
-    {
-        result.resize(rhs.extents());
-    }
-
-    auto rhs_it = rhs.cbegin();
-    auto result_it = result.begin();
-
-    while ( rhs_it != rhs.cend() )
-    {
-        *result_it = op(*rhs_it, lhs);
-        rhs_it++; result_it++;
-    }
-
-    return result;
-}
+//******************************************************************************
+// Unary and binary operations
+//******************************************************************************
 
 template <typename Op, typename L, typename R>
 requires (ArrayType<L> && ArrayType<R>)
@@ -3651,12 +3805,12 @@ auto binary_op_assign_r_scalar(const Op &op, L &lhs, const R &rhs) -> L&
     return lhs;
 }
 
-// (Array | View ) op (Array | View)
+// ExpressionNode op ExpressionNode
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
+requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op (
+    return BinaryOpNode (
         std::plus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3664,9 +3818,9 @@ auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
+requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op (
+    return BinaryOpNode (
         std::minus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3674,9 +3828,9 @@ auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
+requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op (
+    return BinaryOpNode (
         std::multiplies<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3684,9 +3838,9 @@ auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
+requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op (
+    return BinaryOpNode (
         std::divides<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3694,21 +3848,21 @@ auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ArrayType<R> || ViewType<R> )
+requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op (
+    return BinaryOpNode (
         std::modulus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
     );
 }
 
-// (Array | View ) op Scalar
+// ExpressionNode op Scalar
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_r_scalar (
+    return BinaryOpRScalarNode (
         std::plus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3716,9 +3870,9 @@ auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_r_scalar (
+    return BinaryOpRScalarNode (
         std::minus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3726,9 +3880,9 @@ auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_r_scalar (
+    return BinaryOpRScalarNode (
         std::multiplies<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3736,9 +3890,9 @@ auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_r_scalar (
+    return BinaryOpRScalarNode (
         std::divides<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3746,21 +3900,21 @@ auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
+requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_r_scalar (
+    return BinaryOpRScalarNode (
         std::modulus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
     );
 }
 
-// Scalar op (Array | View)
+// Scalar op ExpressionNode
 
 template <typename L, typename R>
-requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_l_scalar (
+    return BinaryOpLScalarNode (
         std::plus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3768,9 +3922,9 @@ auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_l_scalar (
+    return BinaryOpLScalarNode (
         std::minus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3778,9 +3932,9 @@ auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_l_scalar (
+    return BinaryOpLScalarNode (
         std::multiplies<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3788,9 +3942,9 @@ auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_l_scalar (
+    return BinaryOpLScalarNode (
         std::divides<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3798,9 +3952,9 @@ auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
 }
 
 template <typename L, typename R>
-requires ( ArrayType<R> || ViewType<R> ) && ( ScalarNumType<L> )
+requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
-    return binary_op_l_scalar (
+    return BinaryOpLScalarNode (
         std::modulus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3851,21 +4005,21 @@ template <typename L, typename R>
 requires ( ArrayType<L> || ViewType<L> ) && ( ScalarNumType<R> )
 auto operator%=(L &lhs, const R &rhs) -> L& { return binary_op_assign_r_scalar ( std::modulus<> {}, lhs, rhs ); }
 
-// Unary ops
+// op ExpressionNode
 
 template <typename A>
 requires ( ArrayType<A> || ViewType<A> )
 auto operator-(A &&a) -> decltype(auto) {
-    return unary_op (
+    return UnaryOpNode (
         std::negate<> {},
         std::forward<A>(a)
     );
 }
 
 template <typename A>
-requires ( ArrayType<A> || ViewType<A> )
+requires ( ExpressionNodeType<A> )
 auto abs(A &&a) -> decltype(auto) {
-    return unary_op (
+    return UnaryOpNode (
         [](const auto &x) {
             using std::abs;
             return abs(x);
@@ -3959,6 +4113,18 @@ auto norm_L2(const A &a)
         result += std::norm(e);
 
     return std::sqrt(result);
+}
+
+template<typename E>
+requires ( ExpressionNodeType<E> && !(ArrayType<E> || ViewType<E>) )
+auto norm_L2(const E &e)
+{
+    using Result = decltype(std::abs(std::declval<typename E::Element>()));
+    Result result = 0;
+
+    Array<Result, E::dimension()> a(e.extents());
+
+    return norm_L2(a);
 }
 
 #endif // ARRAY_HPP
