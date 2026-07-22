@@ -5,6 +5,7 @@
 #include <print>
 #include <ranges>
 #include <stack>
+#include <chrono>
 
 auto constructors() -> void
 {
@@ -101,8 +102,7 @@ auto numerics() -> void
 {
     Array<int, 1, {2}> a = {2, 3};
 
-    std::println("{}", a % 3);
-
+    auto b = a + a * 3;
 }
 
 auto main() -> int

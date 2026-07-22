@@ -108,13 +108,13 @@ requires (
         ( Bare<L>::type_extents() == Bare<R>::type_extents() )
     )
 )
-class BinaryOpNode;
+class BinaryZipMapOpNode;
 
 template <typename Op, typename L, typename R>
-class BinaryOpRScalarNode;
+class BinaryRScalarOpNode;
 
 template <typename Op, typename L, typename R>
-class BinaryOpLScalarNode;
+class BinaryLScalarOpNode;
 
 //******************************************************************************
 // Concepts for scalar numerical types
@@ -321,42 +321,42 @@ concept UnaryOpNodeType = IsUnaryOpNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
-struct IsBinaryOpNodeType : std::false_type {};
+struct IsBinaryZipMapOpNodeType : std::false_type {};
 
 template <typename Op, typename L, typename R>
-struct IsBinaryOpNodeType<BinaryOpNode<Op, L, R>> : std::true_type {};
+struct IsBinaryZipMapOpNodeType<BinaryZipMapOpNode<Op, L, R>> : std::true_type {};
 
 template <typename T>
-concept BinaryOpNodeType = IsBinaryOpNodeType<std::remove_cvref_t<T>>::value;
+concept BinaryZipMapOpNodeType = IsBinaryZipMapOpNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
-struct IsBinaryOpRScalarNodeType : std::false_type {};
+struct IsBinaryRScalarOpNodeType : std::false_type {};
 
 template <typename Op, typename L, typename R>
-struct IsBinaryOpRScalarNodeType<BinaryOpRScalarNode<Op, L, R>> : std::true_type {};
+struct IsBinaryRScalarOpNodeType<BinaryRScalarOpNode<Op, L, R>> : std::true_type {};
 
 template <typename T>
-concept BinaryOpRScalarNodeType = IsBinaryOpRScalarNodeType<std::remove_cvref_t<T>>::value;
+concept BinaryRScalarOpNodeType = IsBinaryRScalarOpNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
-struct IsBinaryOpLScalarNodeType : std::false_type {};
+struct IsBinaryLScalarOpNodeType : std::false_type {};
 
 template <typename Op, typename L, typename R>
-struct IsBinaryOpLScalarNodeType<BinaryOpLScalarNode<Op, L, R>> : std::true_type {};
+struct IsBinaryLScalarOpNodeType<BinaryLScalarOpNode<Op, L, R>> : std::true_type {};
 
 template <typename T>
-concept BinaryOpLScalarNodeType = IsBinaryOpLScalarNodeType<std::remove_cvref_t<T>>::value;
+concept BinaryLScalarOpNodeType = IsBinaryLScalarOpNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
 struct IsExpressionNodeType :
     std::bool_constant <
         IsUnaryOpNodeType<T>::value         ||
-        IsBinaryOpNodeType<T>::value        ||
-        IsBinaryOpRScalarNodeType<T>::value ||
-        IsBinaryOpLScalarNodeType<T>::value ||
+        IsBinaryZipMapOpNodeType<T>::value        ||
+        IsBinaryRScalarOpNodeType<T>::value ||
+        IsBinaryLScalarOpNodeType<T>::value ||
         IsArrayType<T>::value               ||
         IsViewType<T>::value
     > {};
@@ -3603,7 +3603,7 @@ requires (
         ( Bare<L>::type_extents() == Bare<R>::type_extents() )
     )
 )
-class BinaryOpNode {
+class BinaryZipMapOpNode {
 
 public:
 
@@ -3635,7 +3635,7 @@ public:
         }
     }
 
-    BinaryOpNode(Op &&op, L &&l, R &&r)
+    BinaryZipMapOpNode(Op &&op, L &&l, R &&r)
     : m_op ( std::forward<Op> ( op ) ),
       m_l  ( std::forward<L>  ( l  ) ),
       m_r  ( std::forward<R>  ( r  ) )
@@ -3658,10 +3658,10 @@ private:
 };
 
 template <typename Op, typename L, typename R>
-BinaryOpNode(Op&&, L&&, R&&) -> BinaryOpNode<Op, L, R>;
+BinaryZipMapOpNode(Op&&, L&&, R&&) -> BinaryZipMapOpNode<Op, L, R>;
 
 template <typename Op, typename L, typename R>
-class BinaryOpRScalarNode {
+class BinaryRScalarOpNode {
 
 public:
 
@@ -3688,7 +3688,7 @@ public:
         }
     }
 
-    BinaryOpRScalarNode(Op &&op, L &&l, R &&r)
+    BinaryRScalarOpNode(Op &&op, L &&l, R &&r)
     : m_op ( std::forward<Op> ( op ) ),
       m_l  ( std::forward<L>  ( l  ) ),
       m_r  ( std::forward<R>  ( r  ) )
@@ -3711,10 +3711,10 @@ private:
 };
 
 template <typename Op, typename L, typename R>
-BinaryOpRScalarNode(Op&&, L&&, R&&) -> BinaryOpRScalarNode<Op, L, R>;
+BinaryRScalarOpNode(Op&&, L&&, R&&) -> BinaryRScalarOpNode<Op, L, R>;
 
 template <typename Op, typename L, typename R>
-class BinaryOpLScalarNode {
+class BinaryLScalarOpNode {
 
 public:
 
@@ -3741,7 +3741,7 @@ public:
         }
     }
 
-    BinaryOpLScalarNode(Op &&op, L &&l, R &&r)
+    BinaryLScalarOpNode(Op &&op, L &&l, R &&r)
     : m_op ( std::forward<Op> ( op ) ),
       m_l  ( std::forward<L>  ( l  ) ),
       m_r  ( std::forward<R>  ( r  ) )
@@ -3764,7 +3764,7 @@ private:
 };
 
 template <typename Op, typename L, typename R>
-BinaryOpLScalarNode(Op&&, L&&, R&&) -> BinaryOpLScalarNode<Op, L, R>;
+BinaryLScalarOpNode(Op&&, L&&, R&&) -> BinaryLScalarOpNode<Op, L, R>;
 
 //******************************************************************************
 // Unary and binary operations
@@ -3810,7 +3810,7 @@ auto binary_op_assign_r_scalar(const Op &op, L &lhs, const R &rhs) -> L&
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpNode (
+    return BinaryZipMapOpNode (
         std::plus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3820,7 +3820,7 @@ auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpNode (
+    return BinaryZipMapOpNode (
         std::minus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3830,7 +3830,7 @@ auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpNode (
+    return BinaryZipMapOpNode (
         std::multiplies<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3840,7 +3840,7 @@ auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpNode (
+    return BinaryZipMapOpNode (
         std::divides<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3850,7 +3850,7 @@ auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> ) && ( ExpressionNodeType<R> )
 auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpNode (
+    return BinaryZipMapOpNode (
         std::modulus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3862,7 +3862,7 @@ auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpRScalarNode (
+    return BinaryRScalarOpNode (
         std::plus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3872,7 +3872,7 @@ auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpRScalarNode (
+    return BinaryRScalarOpNode (
         std::minus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3882,7 +3882,7 @@ auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpRScalarNode (
+    return BinaryRScalarOpNode (
         std::multiplies<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3892,7 +3892,7 @@ auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpRScalarNode (
+    return BinaryRScalarOpNode (
         std::divides<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3902,7 +3902,7 @@ auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ExpressionNodeType<L> && ScalarNumType<R> )
 auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpRScalarNode (
+    return BinaryRScalarOpNode (
         std::modulus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3914,7 +3914,7 @@ auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpLScalarNode (
+    return BinaryLScalarOpNode (
         std::plus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3924,7 +3924,7 @@ auto operator+(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpLScalarNode (
+    return BinaryLScalarOpNode (
         std::minus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3934,7 +3934,7 @@ auto operator-(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpLScalarNode (
+    return BinaryLScalarOpNode (
         std::multiplies<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3944,7 +3944,7 @@ auto operator*(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpLScalarNode (
+    return BinaryLScalarOpNode (
         std::divides<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -3954,7 +3954,7 @@ auto operator/(L &&lhs, R &&rhs) -> decltype(auto) {
 template <typename L, typename R>
 requires ( ScalarNumType<L> && ExpressionNodeType<R> )
 auto operator%(L &&lhs, R &&rhs) -> decltype(auto) {
-    return BinaryOpLScalarNode (
+    return BinaryLScalarOpNode (
         std::modulus<> {},
         std::forward<L>(lhs),
         std::forward<R>(rhs)
@@ -4058,7 +4058,7 @@ auto transpose(A &a, int64_t block_size = 1) -> void
 
 template<typename A>
 requires ( ArrayType<A> && A::dimension() == 2 )
-auto transposed(const A &a, int64_t block_size = 16) -> A
+auto transposed(const A &a, int64_t block_size = 1) -> A
 {
     if (
         (a.extents(0) % block_size != 0) ||
