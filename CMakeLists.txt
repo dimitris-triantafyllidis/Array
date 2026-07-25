@@ -17,7 +17,7 @@ add_library ( Array::array ALIAS array )
 
 target_include_directories ( array
     INTERFACE
-        ${CMAKE_CURRENT_SOURCE_DIR}/source
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/Array
 )
 
 # Example program
@@ -25,7 +25,7 @@ target_include_directories ( array
 if ( PROJECT_IS_TOP_LEVEL )
 
     add_executable ( array_example
-        ${CMAKE_CURRENT_SOURCE_DIR}/source/example.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/example.cpp
     )
 
     target_link_libraries ( array_example
