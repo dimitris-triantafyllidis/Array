@@ -24,11 +24,20 @@ target_include_directories ( array
 
 if ( PROJECT_IS_TOP_LEVEL )
 
-    add_executable ( array_example
+    add_executable ( example
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/example.cpp
     )
 
-    target_link_libraries ( array_example
+    target_link_libraries ( example
+        PRIVATE
+            Array::array
+    )
+
+    add_executable ( benchmark
+        ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/benchmark.cpp
+    )
+
+    target_link_libraries ( benchmark
         PRIVATE
             Array::array
     )
