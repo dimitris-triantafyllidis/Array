@@ -126,8 +126,6 @@ public:
     using Element = T;
     using Layout = L;
 
-    using Owning = Array;
-
     static consteval auto dimension() -> int64_t;
 
     static consteval auto is_owning_type() -> bool;

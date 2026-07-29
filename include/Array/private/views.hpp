@@ -53,13 +53,6 @@ public:
             const A*
         >;
 
-    using Owning =
-        std::conditional_t <
-            A::is_owning_type(),
-            A,
-            typename A::Owning
-        >;
-
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
@@ -433,13 +426,6 @@ public:
             const A*
         >;
 
-    using Owning =
-        std::conditional_t <
-            A::is_owning_type(),
-            A,
-            typename A::Owning
-        >;
-
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
@@ -708,13 +694,6 @@ public:
             A::is_owning_type(),
             std::conditional_t<IsReadOnly, const A*, A*>,
             const A*
-        >;
-
-    using Owning =
-        std::conditional_t <
-            A::is_owning_type(),
-            A,
-            typename A::Owning
         >;
 
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
