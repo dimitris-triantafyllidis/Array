@@ -54,6 +54,21 @@ public:
         return false;
     }
 
+    static consteval auto is_of_static_extents() -> bool {
+        return Bare<E>::is_of_static_extents();
+    }
+
+    static consteval auto type_extents() -> Extents<dimension()> {
+        if constexpr (is_of_static_extents())
+        {
+            return Bare<E>::type_extents();
+        }
+        else
+        {
+            return make_extents_filled<dimension()>(dynamic_extent);
+        }
+    }
+
     UnaryOpNode(Op &&op, E &&e)
     : m_op ( std::forward<Op> ( op ) ),
       m_e  ( std::forward<E>  ( e  ) )
