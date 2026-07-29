@@ -25,10 +25,36 @@ class ValuePtr;
 constexpr int64_t dynamic_extent = std::numeric_limits<int64_t>::max();
 
 
-// Extents
+//******************************************************************************
+// Helper class for array extents and indices
+// Like std::array but does not cause NTTP headaches
+//******************************************************************************
 
 template<int64_t N>
-struct Extents;
+struct Extents
+{
+    int64_t data[N];
+
+    constexpr auto operator[](int64_t i) -> int64_t& { return data[i]; }
+    constexpr auto operator[](int64_t i) const -> const int64_t& { return data[i]; }
+
+    constexpr auto size() const -> int64_t { return N; }
+
+    constexpr auto begin() -> int64_t* { return data; }
+    constexpr auto end() -> int64_t* { return data + N; }
+
+    constexpr auto begin() const -> const int64_t* { return data; }
+    constexpr auto end() const -> const int64_t* { return data + N; }
+
+    constexpr auto cbegin() const -> const int64_t* { return data; }
+    constexpr auto cend() const -> const int64_t* { return data + N; }
+};
+
+template<int64_t N>
+constexpr auto operator==(const Extents<N>& lhs, const Extents<N>& rhs) -> bool
+{
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
 
 
 // Helper functions

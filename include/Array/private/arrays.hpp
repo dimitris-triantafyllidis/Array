@@ -566,8 +566,6 @@ auto Array<T, D, E, L>::resize(const Extents<D> &extents) -> void requires (all_
 
     Array resized = Array(extents);
 
-    std::println("!!!{}", intersection_view.size());
-
     for (auto it = intersection_view.cbegin(); it != intersection_view.cend(); it++)
     {
         resized[it.cursor()] = *it;
