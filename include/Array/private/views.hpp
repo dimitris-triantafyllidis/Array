@@ -56,6 +56,13 @@ public:
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
+    using ElementAccess =
+        std::conditional_t <
+            ArrayType<A> || ViewType<A>,
+            ElementReference,
+            typename A::Element
+        >;
+
     BasicSliceView() = default;
 
     explicit BasicSliceView (
@@ -65,9 +72,9 @@ public:
         const Extents<D>              &strides = make_extents_filled<D>(1)
     );
 
-    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementReference;
+    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess;
 
-    auto operator[](const Extents<D> &indices) const -> ElementReference;
+    auto operator[](const Extents<D> &indices) const -> ElementAccess;
 
     static consteval auto dimension()            -> int64_t;
     static consteval auto is_owning_type()       -> bool;
@@ -152,13 +159,13 @@ BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::BasicSliceView (
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::operator[](I... i) const -> ElementReference
+auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::operator[](I... i) const -> ElementAccess
 {
     return operator[]({int64_t(i)...});
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::operator[](const Extents<D> &indices) const -> ElementReference
+auto BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>::operator[](const Extents<D> &indices) const -> ElementAccess
 {
     return (*m_p_array)[map(indices)];
 }
@@ -429,6 +436,13 @@ public:
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
+    using ElementAccess =
+        std::conditional_t <
+            ArrayType<A> || ViewType<A>,
+            ElementReference,
+            typename A::Element
+        >;
+
     BasicBroadcastView() = default;
 
     explicit BasicBroadcastView (
@@ -436,9 +450,9 @@ public:
         const Extents<D> &extents
     );
 
-    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementReference;
+    template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess;
 
-    auto operator[](const Extents<D> &indices) const -> ElementReference;
+    auto operator[](const Extents<D> &indices) const -> ElementAccess;
 
     static consteval auto dimension()            -> int64_t;
     static consteval auto is_owning_type()       -> bool;
@@ -492,13 +506,13 @@ BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::BasicBroadcastView (ARefer
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
-auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::operator[](I... i) const -> ElementReference
+auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::operator[](I... i) const -> ElementAccess
 {
     return operator[]({int64_t(i)...});
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
-auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::operator[](const Extents<D> &indices) const -> ElementReference
+auto BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>::operator[](const Extents<D> &indices) const -> ElementAccess
 {
     return (*m_p_array)[map(indices)];
 }
@@ -699,15 +713,22 @@ public:
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
+    using ElementAccess =
+        std::conditional_t <
+            ArrayType<A> || ViewType<A>,
+            ElementReference,
+            typename A::Element
+        >;
+
     BasicIdentityView() = default;
 
     explicit BasicIdentityView (
         AReference array
     );
 
-    template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementReference;
+    template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess;
 
-    auto operator[](const Extents<A::dimension()> &indices) const -> ElementReference;
+    auto operator[](const Extents<A::dimension()> &indices) const -> ElementAccess;
 
     static consteval auto dimension()            -> int64_t;
     static consteval auto is_owning_type()       -> bool;
@@ -757,13 +778,13 @@ BasicIdentityView<A, IsReadOnly>::BasicIdentityView (AReference array)
 
 template<typename A, bool IsReadOnly>
 template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...))
-auto BasicIdentityView<A, IsReadOnly>::operator[](I... i) const -> ElementReference
+auto BasicIdentityView<A, IsReadOnly>::operator[](I... i) const -> ElementAccess
 {
     return operator[]({int64_t(i)...});
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIdentityView<A, IsReadOnly>::operator[](const Extents<A::dimension()> &indices) const -> ElementReference
+auto BasicIdentityView<A, IsReadOnly>::operator[](const Extents<A::dimension()> &indices) const -> ElementAccess
 {
     return (*m_p_array)[map(indices)];
 }
