@@ -58,8 +58,12 @@ public:
         return m_op(m_e[indices]);
     }
 
-    constexpr auto extents() const -> Extents<dimension()> {
+    constexpr auto extents() const -> const Extents<dimension()>& {
         return m_e.extents();
+    }
+
+    constexpr auto extents(const int64_t &i) const -> const int64_t& {
+        return m_e.extents()[i];
     }
 
 private:
@@ -127,8 +131,12 @@ public:
         return m_op(m_l[indices], m_r[indices]);
     }
 
-    constexpr auto extents() const -> Extents<dimension()> {
+    constexpr auto extents() const -> const Extents<dimension()>& {
         return m_l.extents();
+    }
+
+    constexpr auto extents(const int64_t &i) const -> const int64_t& {
+        return m_l.extents()[i];
     }
 
 private:
@@ -184,8 +192,12 @@ public:
         return m_op(m_l[indices], m_r);
     }
 
-    constexpr auto extents() const -> Extents<dimension()> {
+    constexpr auto extents() const -> const Extents<dimension()>& {
         return m_l.extents();
+    }
+
+    constexpr auto extents(const int64_t &i) const -> const int64_t& {
+        return m_l.extents()[i];
     }
 
 private:
@@ -241,8 +253,12 @@ public:
         return m_op(m_l, m_r[indices]);
     }
 
-    constexpr auto extents() const -> Extents<dimension()> {
+    constexpr auto extents() const -> const Extents<dimension()>& {
         return m_r.extents();
+    }
+
+    constexpr auto extents(const int64_t &i) const -> const int64_t& {
+        return m_r.extents()[i];
     }
 
 private:
