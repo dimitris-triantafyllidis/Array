@@ -45,6 +45,10 @@ public:
         return Bare<E>::dimension();
     }
 
+    static consteval auto is_owning_type() -> bool {
+        return false;
+    }
+
     UnaryOpNode(Op &&op, E &&e)
     : m_op ( std::forward<Op> ( op ) ),
       m_e  ( std::forward<E>  ( e  ) )
@@ -90,6 +94,10 @@ public:
 
     static consteval auto dimension() -> int64_t {
         return Bare<L>::dimension();
+    }
+
+    static consteval auto is_owning_type() -> bool {
+        return false;
     }
 
     static consteval auto is_of_static_extents() -> bool {
@@ -147,6 +155,10 @@ public:
         return Bare<L>::dimension();
     }
 
+    static consteval auto is_owning_type() -> bool {
+        return false;
+    }
+
     static consteval auto is_of_static_extents() -> bool {
         return Bare<L>::is_of_static_extents();
     }
@@ -198,6 +210,10 @@ public:
 
     static consteval auto dimension() -> int64_t {
         return Bare<R>::dimension();
+    }
+
+    static consteval auto is_owning_type() -> bool {
+        return false;
     }
 
     static consteval auto is_of_static_extents() -> bool {
