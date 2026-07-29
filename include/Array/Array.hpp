@@ -6,7 +6,6 @@
 #include "private/ValuePtr.hpp"
 #include "private/layouts.hpp"
 #include "private/iterators.hpp"
-#include "private/views.hpp"
 #include "private/arrays.hpp"
 #include "private/expression_nodes.hpp"
 #include "private/SingleProducerAsyncTaskQueue.hpp"

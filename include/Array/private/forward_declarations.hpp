@@ -160,21 +160,21 @@ template <
     int64_t D,
     Extents<D> ViewIndexSubspace
 >
-class BasicSliceView;
+class BasicSliceViewNode;
 
 template <
     typename A,
     int64_t D = A::dimension(),
     Extents<D> ViewIndexSubspace = make_extents_iota<D>(0)
 >
-using SliceView = BasicSliceView<A, false, D, ViewIndexSubspace>;
+using SliceViewNode = BasicSliceViewNode<A, false, D, ViewIndexSubspace>;
 
 template <
     typename A,
     int64_t D = A::dimension(),
     Extents<D> ViewIndexSubspace = make_extents_iota<D>(0)
 >
-using ReadOnlySliceView = BasicSliceView<A, true, D, ViewIndexSubspace>;
+using ReadOnlySliceViewNode = BasicSliceViewNode<A, true, D, ViewIndexSubspace>;
 
 
 template <
@@ -183,42 +183,42 @@ template <
     int64_t D,
     Extents<A::dimension()> AIndexSubspace
 >
-class BasicBroadcastView;
+class BasicBroadcastViewNode;
 
 template <
     typename A,
     int64_t D = A::dimension(),
     Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
 >
-using BroadcastView = BasicBroadcastView<A, false, D, AIndexSubspace>;
+using BroadcastViewNode = BasicBroadcastViewNode<A, false, D, AIndexSubspace>;
 
 template <
     typename A,
     int64_t D = A::dimension(),
     Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
 >
-using ReadOnlyBroadcastView = BasicBroadcastView<A, true, D, AIndexSubspace>;
+using ReadOnlyBroadcastViewNode = BasicBroadcastViewNode<A, true, D, AIndexSubspace>;
 
 
 template <
     typename A,
     bool IsReadOnly
 >
-class BasicIdentityView;
+class BasicIndentityViewNode;
 
 template <
     typename A,
     int64_t D = A::dimension(),
     Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
 >
-using IdentityView = BasicIdentityView<A, false>;
+using IndentityViewNode = BasicIndentityViewNode<A, false>;
 
 template <
     typename A,
     int64_t D = A::dimension(),
     Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
 >
-using ReadOnlyIdentityView = BasicIdentityView<A, true>;
+using ReadOnlyIndentityViewNode = BasicIndentityViewNode<A, true>;
 
 
 // Array
@@ -394,41 +394,41 @@ concept IteratorType = IsIteratorType<std::remove_cvref_t<T>>::value;
 // Views
 
 template <typename T>
-struct IsSliceViewType : std::false_type {};
+struct IsSliceViewNodeType : std::false_type {};
 
 template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-struct IsSliceViewType<BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>> : std::true_type {};
+struct IsSliceViewNodeType<BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>> : std::true_type {};
 
 template <typename T>
-concept SliceViewType = IsSliceViewType<std::remove_cvref_t<T>>::value;
+concept SliceViewNodeType = IsSliceViewNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
-struct IsBroadcastViewType : std::false_type {};
+struct IsBroadcastViewNodeType : std::false_type {};
 
 template <typename A, bool IsReadOnly, int64_t D, Extents<D> AIndexSubspace>
-struct IsBroadcastViewType<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>> : std::true_type {};
+struct IsBroadcastViewNodeType<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>> : std::true_type {};
 
 template <typename T>
-concept BroadcastViewType = IsBroadcastViewType<std::remove_cvref_t<T>>::value;
+concept BroadcastViewNodeType = IsBroadcastViewNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
-struct IsIdentityViewType : std::false_type {};
+struct IsIndentityViewNodeType : std::false_type {};
 
 template <typename A, bool IsReadOnly>
-struct IsIdentityViewType<BasicIdentityView<A, IsReadOnly>> : std::true_type {};
+struct IsIndentityViewNodeType<BasicIndentityViewNode<A, IsReadOnly>> : std::true_type {};
 
 template <typename T>
-concept IdentityViewType = IsIdentityViewType<std::remove_cvref_t<T>>::value;
+concept IndentityViewNodeType = IsIndentityViewNodeType<std::remove_cvref_t<T>>::value;
 
 
 template <typename T>
 struct IsViewType :
     std::bool_constant <
-        IsSliceViewType<T>::value     ||
-        IsBroadcastViewType<T>::value ||
-        IsIdentityViewType<T>::value
+        IsSliceViewNodeType<T>::value     ||
+        IsBroadcastViewNodeType<T>::value ||
+        IsIndentityViewNodeType<T>::value
     > {};
 
 template <typename T>

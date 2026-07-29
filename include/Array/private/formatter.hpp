@@ -9,10 +9,10 @@
 // std::formatter specializations
 //******************************************************************************
 
-// Specialization for BasicSliceView
+// Specialization for BasicSliceViewNode
 
 template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-class std::formatter<BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace>>
+class std::formatter<BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>>
 {
 
 public:
@@ -20,7 +20,7 @@ public:
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(const BasicSliceView<A, IsReadOnly, D, ViewIndexSubspace> &v, FormatContext &ctx) const
+    auto format(const BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace> &v, FormatContext &ctx) const
     {
         auto out = ctx.out();
         auto it = v.cbegin();
@@ -73,10 +73,10 @@ public:
 
 };
 
-// Specialization for BasicBroadcastView
+// Specialization for BasicBroadcastViewNode
 
 template <typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
-class std::formatter<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>>
+class std::formatter<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>>
 {
 
 public:
@@ -84,10 +84,10 @@ public:
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
     template<typename FormatContext>
-    auto format(const BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace> &v, FormatContext &ctx) const
+    auto format(const BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace> &v, FormatContext &ctx) const
     {
         auto out = ctx.out();
-        auto view = ReadOnlySliceView<BasicBroadcastView<A, IsReadOnly, D, AIndexSubspace>>(v);
+        auto view = ReadOnlySliceViewNode<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>>(v);
         out = std::format_to(out, "{}", view);
         return out;
     }
@@ -107,7 +107,7 @@ public:
     auto format(const Array<T, D, E, L> &a, FormatContext &ctx) const
     {
         auto out = ctx.out();
-        auto view = ReadOnlySliceView<Array<T, D, E, L>>(a);
+        auto view = ReadOnlySliceViewNode<Array<T, D, E, L>>(a);
         out = std::format_to(out, "{}", view);
         return out;
     }
