@@ -314,21 +314,7 @@ class BasicIndentityViewNode
 
 public:
 
-    using Element = A::Element;
-
-    using AReference =
-        std::conditional_t <
-            A::is_owning_type(),
-            std::conditional_t<IsReadOnly, const A&, A&>,
-            const A&
-        >;
-
-    using APointer =
-        std::conditional_t <
-            A::is_owning_type(),
-            std::conditional_t<IsReadOnly, const A*, A*>,
-            const A*
-        >;
+    using Element = Bare<A>::Element;
 
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
@@ -337,32 +323,30 @@ public:
         std::conditional_t <
             ArrayType<A> || ViewType<A>,
             ElementReference,
-            typename A::Element
+            typename Bare<A>::Element
         >;
 
-    explicit BasicIndentityViewNode (
-        AReference array
-    );
+    explicit BasicIndentityViewNode ( A&& a );
 
-    template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess;
+    template<typename... I> requires ((sizeof...(I) == Bare<A>::dimension()) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess;
 
-    auto operator[](const Extents<A::dimension()> &indices) const -> ElementAccess;
+    auto operator[](const Extents<Bare<A>::dimension()> &indices) const -> ElementAccess;
 
     static consteval auto dimension()            -> int64_t;
     static consteval auto is_owning_type()       -> bool;
     static consteval auto is_of_static_extents() -> bool;
-    static consteval auto type_extents()         -> Extents<A::dimension()>;
+    static consteval auto type_extents()         -> Extents<Bare<A>::dimension()>;
 
     consteval auto is_identity() const -> bool;
     auto is_identity_chain() const -> bool;
 
-    auto extents() const -> const Extents<A::dimension()>&;
+    auto extents() const -> const Extents<Bare<A>::dimension()>&;
 
     auto extents(const int64_t &i) const -> const int64_t&;
 
     auto size() const -> int64_t;
 
-    auto map(const Extents<A::dimension()> &indices) const -> Extents<A::dimension()>;
+    auto map(const Extents<Bare<A>::dimension()> &indices) const -> Extents<Bare<A>::dimension()>;
 
     constexpr auto p_elements() const -> ElementPointer;
 
@@ -386,31 +370,31 @@ public:
 
 private:
 
-    APointer m_p_array = nullptr;
+    ExpressionNodeMemberStorage<A> m_a;
 };
 
 template<typename A, bool IsReadOnly>
-BasicIndentityViewNode<A, IsReadOnly>::BasicIndentityViewNode (AReference array)
-: m_p_array ( &array )
+BasicIndentityViewNode<A, IsReadOnly>::BasicIndentityViewNode ( A&& a )
+: m_a ( std::forward<A>(a) )
 {}
 
 template<typename A, bool IsReadOnly>
-template<typename... I> requires ((sizeof...(I) == A::dimension()) && (std::is_integral_v<I> && ...))
+template<typename... I> requires ((sizeof...(I) == Bare<A>::dimension()) && (std::is_integral_v<I> && ...))
 auto BasicIndentityViewNode<A, IsReadOnly>::operator[](I... i) const -> ElementAccess
 {
     return operator[]({int64_t(i)...});
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIndentityViewNode<A, IsReadOnly>::operator[](const Extents<A::dimension()> &indices) const -> ElementAccess
+auto BasicIndentityViewNode<A, IsReadOnly>::operator[](const Extents<Bare<A>::dimension()> &indices) const -> ElementAccess
 {
-    return (*m_p_array)[map(indices)];
+    return m_a[map(indices)];
 }
 
 template<typename A, bool IsReadOnly>
 consteval auto BasicIndentityViewNode<A, IsReadOnly>::dimension() -> int64_t
 {
-    return A::dimension();
+    return Bare<A>::dimension();
 }
 
 template<typename A, bool IsReadOnly>
@@ -426,9 +410,9 @@ consteval auto BasicIndentityViewNode<A, IsReadOnly>::is_of_static_extents() -> 
 }
 
 template<typename A, bool IsReadOnly>
-consteval auto BasicIndentityViewNode<A, IsReadOnly>::type_extents() -> Extents<A::dimension()>
+consteval auto BasicIndentityViewNode<A, IsReadOnly>::type_extents() -> Extents<Bare<A>::dimension()>
 {
-    return make_extents_filled<A::dimension()>(dynamic_extent);
+    return make_extents_filled<Bare<A>::dimension()>(dynamic_extent);
 }
 
 template<typename A, bool IsReadOnly>
@@ -446,30 +430,30 @@ auto BasicIndentityViewNode<A, IsReadOnly>::is_identity_chain() const -> bool
     }
     else
     {
-        return is_identity() && m_p_array->is_identity_chain();
+        return is_identity() && m_a.is_identity_chain();
     }
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIndentityViewNode<A, IsReadOnly>::extents() const -> const Extents<A::dimension()>&
+auto BasicIndentityViewNode<A, IsReadOnly>::extents() const -> const Extents<Bare<A>::dimension()>&
 {
-    return m_p_array->extents();
+    return m_a.extents();
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicIndentityViewNode<A, IsReadOnly>::extents(const int64_t &i) const -> const int64_t&
 {
-    return m_p_array->extents()[i];
+    return m_a.extents()[i];
 }
 
 template<typename A, bool IsReadOnly>
 auto BasicIndentityViewNode<A, IsReadOnly>::size() const -> int64_t
 {
-    return m_p_array->size();
+    return m_a.size();
 }
 
 template<typename A, bool IsReadOnly>
-auto BasicIndentityViewNode<A, IsReadOnly>::map(const Extents<A::dimension()> &view_indices) const -> Extents<A::dimension()>
+auto BasicIndentityViewNode<A, IsReadOnly>::map(const Extents<Bare<A>::dimension()> &view_indices) const -> Extents<Bare<A>::dimension()>
 {
     return view_indices;
 }
@@ -477,7 +461,7 @@ auto BasicIndentityViewNode<A, IsReadOnly>::map(const Extents<A::dimension()> &v
 template<typename A, bool IsReadOnly>
 constexpr auto BasicIndentityViewNode<A, IsReadOnly>::p_elements() const -> ElementPointer
 {
-    return m_p_array->p_elements();
+    return m_a.p_elements();
 }
 
 template<typename A, bool IsReadOnly>
@@ -526,20 +510,20 @@ auto BasicIndentityViewNode<A, IsReadOnly>::cend() const -> ReadOnlyIndexTupleIt
 
 template<typename A>
 auto make_identity_view (
-    A& array,
-    const Extents<A::dimension()> &extents = make_extents_filled<A::dimension()>(dynamic_extent)
+    A&& a,
+    const Extents<Bare<A>::dimension()> &extents = make_extents_filled<Bare<A>::dimension()>(dynamic_extent)
 )
 {
-    return IndentityViewNode<A>(array);
+    return IndentityViewNode<A>(std::forward<A>(a));
 }
 
 template<typename A>
 auto make_read_only_identity_view (
-    A& array,
-    const Extents<A::dimension()> &extents = make_extents_filled<A::dimension()>(dynamic_extent)
+    A&& a,
+    const Extents<Bare<A>::dimension()> &extents = make_extents_filled<Bare<A>::dimension()>(dynamic_extent)
 )
 {
-    return ReadOnlyIndentityViewNode<A>(array);
+    return ReadOnlyIndentityViewNode<A>(std::forward<A>(a));
 }
 
 /**
@@ -562,27 +546,13 @@ class BasicSliceViewNode
 {
 
     static_assert(D > 0);
-    static_assert(D <= A::dimension());
-    static_assert(axis_selection_valid<A::dimension(), D>(ViewIndexSubspace));
-    static_assert(ViewIndexSubspace[D - 1] < A::dimension());
+    static_assert(D <= Bare<A>::dimension());
+    static_assert(axis_selection_valid<Bare<A>::dimension(), D>(ViewIndexSubspace));
+    static_assert(ViewIndexSubspace[D - 1] < Bare<A>::dimension());
 
 public:
 
-    using Element = A::Element;
-
-    using AReference =
-        std::conditional_t <
-            A::is_owning_type(),
-            std::conditional_t<IsReadOnly, const A&, A&>,
-            const A&
-        >;
-
-    using APointer =
-        std::conditional_t <
-            A::is_owning_type(),
-            std::conditional_t<IsReadOnly, const A*, A*>,
-            const A*
-        >;
+    using Element = Bare<A>::Element;
 
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
@@ -591,14 +561,14 @@ public:
         std::conditional_t <
             ArrayType<A> || ViewType<A>,
             ElementReference,
-            typename A::Element
+            typename Bare<A>::Element
         >;
 
     explicit BasicSliceViewNode (
-        AReference array,
-        const Extents<A::dimension()> &origin  = make_extents_filled<A::dimension()>(0),
-        const Extents<D>              &extents = make_extents_filled<D>(dynamic_extent),
-        const Extents<D>              &strides = make_extents_filled<D>(1)
+        A&& a,
+        const Extents<Bare<A>::dimension()> &origin  = make_extents_filled<Bare<A>::dimension()>(0),
+        const Extents<D>                    &extents = make_extents_filled<D>(dynamic_extent),
+        const Extents<D>                    &strides = make_extents_filled<D>(1)
     );
 
     template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess;
@@ -613,8 +583,8 @@ public:
     auto is_identity() const -> bool;
     auto is_identity_chain() const -> bool;
 
-    auto origin() const -> const Extents<A::dimension()>&;
-    auto origin(const Extents<A::dimension()> &origin) -> BasicSliceViewNode&;
+    auto origin() const -> const Extents<Bare<A>::dimension()>&;
+    auto origin(const Extents<Bare<A>::dimension()> &origin) -> BasicSliceViewNode&;
 
     auto origin(const int64_t &i) const -> const int64_t&;
     auto origin(const int64_t &i, const int64_t &v) -> BasicSliceViewNode&;
@@ -633,7 +603,7 @@ public:
 
     auto size() const -> int64_t;
 
-    auto map(const Extents<D> &indices) const -> Extents<A::dimension()>;
+    auto map(const Extents<D> &indices) const -> Extents<Bare<A>::dimension()>;
 
     constexpr auto p_elements() const -> ElementPointer;
 
@@ -657,9 +627,9 @@ public:
 
 private:
 
-    APointer m_p_array = nullptr;
+    ExpressionNodeMemberStorage<A> m_a;
 
-    Extents<A::dimension()> m_origin  = {};
+    Extents<Bare<A>::dimension()> m_origin  = {};
     Extents<D>              m_extents = {};
     Extents<D>              m_strides = {};
 
@@ -667,12 +637,12 @@ private:
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::BasicSliceViewNode (
-    AReference array,
-    const Extents<A::dimension()> &origin,
+    A&& a,
+    const Extents<Bare<A>::dimension()> &origin,
     const Extents<D>              &extents,
     const Extents<D>              &strides
 )
-: m_p_array ( &array  ),
+: m_a       ( std::forward<A>(a) ),
   m_origin  ( origin  ),
   m_extents ( extents ),
   m_strides ( strides )
@@ -681,7 +651,7 @@ BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::BasicSliceViewNode (
     {
         for (int64_t i = 0; i < extents.size(); i++)
         {
-            m_extents[i] = array.extents(ViewIndexSubspace[i]);
+            m_extents[i] = a.extents(ViewIndexSubspace[i]);
         }
     }
 }
@@ -696,7 +666,7 @@ auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::operator[](I... i)
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::operator[](const Extents<D> &indices) const -> ElementAccess
 {
-    return (*m_p_array)[map(indices)];
+    return m_a[map(indices)];
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
@@ -726,11 +696,11 @@ consteval auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::type_ext
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::is_identity() const -> bool
 {
-    if constexpr (dimension() == A::dimension())
+    if constexpr (dimension() == Bare<A>::dimension())
     {
         return (
             ( origin()  == make_extents_filled<dimension()>(0) ) &&
-            ( extents() == m_p_array->extents()                ) &&
+            ( extents() == m_a.extents()                ) &&
             ( strides() == make_extents_filled<dimension()>(1) )
         );
     }
@@ -747,18 +717,18 @@ auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::is_identity_chain(
     }
     else
     {
-        return is_identity() && m_p_array->is_identity_chain();
+        return is_identity() && m_a.is_identity_chain();
     }
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::origin() const -> const Extents<A::dimension()>&
+auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::origin() const -> const Extents<Bare<A>::dimension()>&
 {
     return m_origin;
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::origin(const Extents<A::dimension()> &origin) -> BasicSliceViewNode&
+auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::origin(const Extents<Bare<A>::dimension()> &origin) -> BasicSliceViewNode&
 {
     m_origin = origin;
     return *this;
@@ -836,9 +806,9 @@ auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::size() const -> in
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::map(const Extents<D> &view_indices) const -> Extents<A::dimension()>
+auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::map(const Extents<D> &view_indices) const -> Extents<Bare<A>::dimension()>
 {
-    Extents<A::dimension()> array_indices = m_origin;
+    Extents<Bare<A>::dimension()> array_indices = m_origin;
 
     for (int64_t k = 0; k < D; k++)
     {
@@ -851,7 +821,7 @@ auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::map(const Extents<
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
 constexpr auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::p_elements() const -> ElementPointer
 {
-    return m_p_array->p_elements();
+    return m_a.p_elements();
 }
 
 template<typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
@@ -900,24 +870,24 @@ auto BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>::cend() const -> Re
 
 template<int64_t D, Extents<D> ViewIndexSubspace, typename A>
 auto make_slice_view (
-    A& array,
-    const Extents<A::dimension()> &origin  = make_extents_filled<A::dimension()>(0),
+    A&& a,
+    const Extents<Bare<A>::dimension()> &origin  = make_extents_filled<Bare<A>::dimension()>(0),
     const Extents<D> &extents = make_extents_filled<D>(dynamic_extent),
     const Extents<D> &strides = make_extents_filled<D>(1)
 )
 {
-    return SliceViewNode<A, D, ViewIndexSubspace>(array, origin, extents, strides);
+    return SliceViewNode<A, D, ViewIndexSubspace>(std::forward<A>(a), origin, extents, strides);
 }
 
 template<int64_t D, Extents<D> ViewIndexSubspace, typename A>
 auto make_read_only_slice_view (
-    A& array,
-    const Extents<A::dimension()> &origin  = make_extents_filled<A::dimension()>(0),
+    A&& a,
+    const Extents<Bare<A>::dimension()> &origin  = make_extents_filled<Bare<A>::dimension()>(0),
     const Extents<D> &extents = make_extents_filled<D>(dynamic_extent),
     const Extents<D> &strides = make_extents_filled<D>(1)
 )
 {
-    return ReadOnlySliceViewNode<A, D, ViewIndexSubspace>(array, origin, extents, strides);
+    return ReadOnlySliceViewNode<A, D, ViewIndexSubspace>(std::forward<A>(a), origin, extents, strides);
 }
 
 /**
@@ -926,7 +896,7 @@ auto make_read_only_slice_view (
  * @tparam A                  The array-like type of the object we want the view to refer to, typically an `Array` or another `View`.
  * @tparam IsReadOnly         Whether the view is read-only.
  * @tparam D                  Dimension of the view. Must be equal to or bigger than the dimension of `A`.
- * @tparam AIndexSubspace     An `Extents<A::dimension()>` specifying the view axis indices along which the viewed object extends.
+ * @tparam AIndexSubspace     An `Extents<Bare<A>::dimension()>` specifying the view axis indices along which the viewed object extends.
  *                            Must be a strictly increasing sequence.
  */
 
@@ -934,33 +904,19 @@ template <
     typename A,
     bool IsReadOnly,
     int64_t D,
-    Extents<A::dimension()> AIndexSubspace
+    Extents<Bare<A>::dimension()> AIndexSubspace
 >
 class BasicBroadcastViewNode
 {
 
     static_assert(D > 0);
-    static_assert(D >= A::dimension());
-    static_assert(axis_selection_valid<D, A::dimension()>(AIndexSubspace));
-    static_assert(AIndexSubspace[A::dimension() - 1] < D);
+    static_assert(D >= Bare<A>::dimension());
+    static_assert(axis_selection_valid<D, Bare<A>::dimension()>(AIndexSubspace));
+    static_assert(AIndexSubspace[Bare<A>::dimension() - 1] < D);
 
 public:
 
-    using Element = A::Element;
-
-    using AReference =
-        std::conditional_t <
-            A::is_owning_type(),
-            std::conditional_t<IsReadOnly, const A&, A&>,
-            const A&
-        >;
-
-    using APointer =
-        std::conditional_t <
-            A::is_owning_type(),
-            std::conditional_t<IsReadOnly, const A*, A*>,
-            const A*
-        >;
+    using Element = Bare<A>::Element;
 
     using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
     using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
@@ -969,11 +925,11 @@ public:
         std::conditional_t <
             ArrayType<A> || ViewType<A>,
             ElementReference,
-            typename A::Element
+            typename Bare<A>::Element
         >;
 
     explicit BasicBroadcastViewNode (
-        AReference array,
+        A&& a,
         const Extents<D> &extents
     );
 
@@ -997,7 +953,7 @@ public:
 
     auto size() const -> int64_t;
 
-    auto map(const Extents<D> &indices) const -> Extents<A::dimension()>;
+    auto map(const Extents<D> &indices) const -> Extents<Bare<A>::dimension()>;
 
     constexpr auto p_elements() const -> ElementPointer;
 
@@ -1021,65 +977,65 @@ public:
 
 private:
 
-    APointer m_p_array = nullptr;
+    ExpressionNodeMemberStorage<A> m_a;
 
     Extents<D> m_extents = {};
 };
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
-BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::BasicBroadcastViewNode (AReference array, const Extents<D> &extents)
-: m_p_array ( &array ), m_extents(extents)
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
+BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::BasicBroadcastViewNode (A&& a, const Extents<D> &extents)
+: m_a ( std::forward<A>(a) ), m_extents(extents)
 {}
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 template<typename... I> requires ((sizeof...(I) == D) && (std::is_integral_v<I> && ...))
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::operator[](I... i) const -> ElementAccess
 {
     return operator[]({int64_t(i)...});
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::operator[](const Extents<D> &indices) const -> ElementAccess
 {
-    return (*m_p_array)[map(indices)];
+    return m_a[map(indices)];
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 consteval auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::dimension() -> int64_t
 {
     return D;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 consteval auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::is_owning_type() -> bool
 {
     return false;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 consteval auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::is_of_static_extents() -> bool
 {
     return false;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 consteval auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::type_extents() -> Extents<D>
 {
     return make_extents_filled<D>(dynamic_extent);
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::is_identity() const -> bool
 {
-    if constexpr (dimension() == A::dimension())
+    if constexpr (dimension() == Bare<A>::dimension())
     {
-        return extents() == m_p_array->extents();
+        return extents() == m_a.extents();
     }
 
     return false;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::is_identity_chain() const -> bool
 {
     if constexpr (A::is_owning_type())
@@ -1088,62 +1044,62 @@ auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::is_identity_chain
     }
     else
     {
-        return is_identity() && m_p_array->is_identity_chain();
+        return is_identity() && m_a.is_identity_chain();
     }
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::extents() const -> const Extents<D>&
 {
     return m_extents;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::extents(const Extents<D> &extents) -> BasicBroadcastViewNode&
 {
     m_extents = extents;
     return *this;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::extents(const int64_t &i) const -> const int64_t&
 {
     return m_extents[i];
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::extents(const int64_t &i, const int64_t &v) -> BasicBroadcastViewNode&
 {
     m_extents[i] = v;
     return *this;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::size() const -> int64_t
 {
     return std::reduce(m_extents.begin(), m_extents.end(), int64_t(1), std::multiplies{});
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
-auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::map(const Extents<D> &view_indices) const -> Extents<A::dimension()>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
+auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::map(const Extents<D> &view_indices) const -> Extents<Bare<A>::dimension()>
 {
-    Extents<A::dimension()> array_indices = {};
+    Extents<Bare<A>::dimension()> array_indices = {};
 
-    for (int64_t i = 0; i < A::dimension(); i++)
+    for (int64_t i = 0; i < Bare<A>::dimension(); i++)
     {
-        array_indices[i] = view_indices[AIndexSubspace[i]] % m_p_array->extents(i);
+        array_indices[i] = view_indices[AIndexSubspace[i]] % m_a.extents(i);
     }
 
     return array_indices;
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 constexpr auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::p_elements() const -> ElementPointer
 {
-    return m_p_array->p_elements();
+    return m_a.p_elements();
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::begin() const ->
     std::conditional_t <
         IsReadOnly,
@@ -1159,13 +1115,13 @@ auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::begin() const ->
         >::begin_of(this);
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::cbegin() const -> ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>
 {
     return ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>::cbegin_of(this);
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::end() const ->
     std::conditional_t <
         IsReadOnly,
@@ -1181,7 +1137,7 @@ auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::end() const ->
         >::end_of(this);
 }
 
-template<typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
+template<typename A, bool IsReadOnly, int64_t D, Extents<Bare<A>::dimension()> AIndexSubspace>
 auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::cend() const -> ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>
 {
     return ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>::cend_of(this);
@@ -1189,20 +1145,20 @@ auto BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>::cend() const -> R
 
 template<int64_t D, Extents<D> AIndexSubspace, typename A>
 auto make_broadcast_view (
-    A& array,
+    A&& a,
     const Extents<D> &extents = make_extents_filled<D>(dynamic_extent)
 )
 {
-    return BroadcastViewNode<A, D, AIndexSubspace>(array, extents);
+    return BroadcastViewNode<A, D, AIndexSubspace>(std::forward<A>(a), extents);
 }
 
 template<int64_t D, Extents<D> AIndexSubspace, typename A>
 auto make_read_only_broadcast_view (
-    A& array,
+    A&& a,
     const Extents<D> &extents = make_extents_filled<D>(dynamic_extent)
 )
 {
-    return ReadOnlyBroadcastViewNode<A, D, AIndexSubspace>(array, extents);
+    return ReadOnlyBroadcastViewNode<A, D, AIndexSubspace>(std::forward<A>(a), extents);
 }
 
 #endif // EXPRESSION_NODES_HPP

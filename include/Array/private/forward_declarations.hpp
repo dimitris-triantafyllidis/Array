@@ -8,6 +8,10 @@
 #include <complex>
 
 
+template<typename T>
+using Bare = std::remove_cvref_t<T>;
+
+
 // ValuePtr
 
 class ICloneable;
@@ -164,14 +168,14 @@ class BasicSliceViewNode;
 
 template <
     typename A,
-    int64_t D = A::dimension(),
+    int64_t D = Bare<A>::dimension(),
     Extents<D> ViewIndexSubspace = make_extents_iota<D>(0)
 >
 using SliceViewNode = BasicSliceViewNode<A, false, D, ViewIndexSubspace>;
 
 template <
     typename A,
-    int64_t D = A::dimension(),
+    int64_t D = Bare<A>::dimension(),
     Extents<D> ViewIndexSubspace = make_extents_iota<D>(0)
 >
 using ReadOnlySliceViewNode = BasicSliceViewNode<A, true, D, ViewIndexSubspace>;
@@ -181,21 +185,21 @@ template <
     typename A,
     bool IsReadOnly,
     int64_t D,
-    Extents<A::dimension()> AIndexSubspace
+    Extents<Bare<A>::dimension()> AIndexSubspace
 >
 class BasicBroadcastViewNode;
 
 template <
     typename A,
-    int64_t D = A::dimension(),
-    Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
+    int64_t D = Bare<A>::dimension(),
+    Extents<Bare<A>::dimension()> AIndexSubspace = make_extents_iota<Bare<A>::dimension()>(0)
 >
 using BroadcastViewNode = BasicBroadcastViewNode<A, false, D, AIndexSubspace>;
 
 template <
     typename A,
-    int64_t D = A::dimension(),
-    Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
+    int64_t D = Bare<A>::dimension(),
+    Extents<Bare<A>::dimension()> AIndexSubspace = make_extents_iota<Bare<A>::dimension()>(0)
 >
 using ReadOnlyBroadcastViewNode = BasicBroadcastViewNode<A, true, D, AIndexSubspace>;
 
@@ -208,15 +212,15 @@ class BasicIndentityViewNode;
 
 template <
     typename A,
-    int64_t D = A::dimension(),
-    Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
+    int64_t D = Bare<A>::dimension(),
+    Extents<Bare<A>::dimension()> AIndexSubspace = make_extents_iota<Bare<A>::dimension()>(0)
 >
 using IndentityViewNode = BasicIndentityViewNode<A, false>;
 
 template <
     typename A,
-    int64_t D = A::dimension(),
-    Extents<A::dimension()> AIndexSubspace = make_extents_iota<A::dimension()>(0)
+    int64_t D = Bare<A>::dimension(),
+    Extents<Bare<A>::dimension()> AIndexSubspace = make_extents_iota<Bare<A>::dimension()>(0)
 >
 using ReadOnlyIndentityViewNode = BasicIndentityViewNode<A, true>;
 
@@ -233,9 +237,6 @@ class Array;
 
 
 // Expression node types
-
-template<typename T>
-using Bare = std::remove_cvref_t<T>;
 
 template <typename Op, typename E>
 class UnaryOpNode;

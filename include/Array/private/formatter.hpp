@@ -107,7 +107,7 @@ public:
     auto format(const Array<T, D, E, L> &a, FormatContext &ctx) const
     {
         auto out = ctx.out();
-        auto view = ReadOnlySliceViewNode<Array<T, D, E, L>>(a);
+        auto view = make_read_only_slice_view<D, make_extents_iota<D>(0)>(a);
         out = std::format_to(out, "{}", view);
         return out;
     }
