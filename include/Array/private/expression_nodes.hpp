@@ -340,8 +340,6 @@ public:
             typename A::Element
         >;
 
-    BasicIndentityViewNode() = default;
-
     explicit BasicIndentityViewNode (
         AReference array
     );
@@ -595,8 +593,6 @@ public:
             ElementReference,
             typename A::Element
         >;
-
-    BasicSliceViewNode() = default;
 
     explicit BasicSliceViewNode (
         AReference array,
@@ -975,8 +971,6 @@ public:
             ElementReference,
             typename A::Element
         >;
-
-    BasicBroadcastViewNode() = default;
 
     explicit BasicBroadcastViewNode (
         AReference array,
