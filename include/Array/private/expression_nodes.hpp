@@ -50,10 +50,6 @@ public:
         return Bare<E>::dimension();
     }
 
-    static consteval auto is_owning_type() -> bool {
-        return false;
-    }
-
     static consteval auto is_of_static_extents() -> bool {
         return Bare<E>::is_of_static_extents();
     }
@@ -120,10 +116,6 @@ public:
         return Bare<L>::dimension();
     }
 
-    static consteval auto is_owning_type() -> bool {
-        return false;
-    }
-
     static consteval auto is_of_static_extents() -> bool {
         return
             Bare<L>::is_of_static_extents() &&
@@ -186,10 +178,6 @@ public:
         return Bare<L>::dimension();
     }
 
-    static consteval auto is_owning_type() -> bool {
-        return false;
-    }
-
     static consteval auto is_of_static_extents() -> bool {
         return Bare<L>::is_of_static_extents();
     }
@@ -248,10 +236,6 @@ public:
 
     static consteval auto dimension() -> int64_t {
         return Bare<R>::dimension();
-    }
-
-    static consteval auto is_owning_type() -> bool {
-        return false;
     }
 
     static consteval auto is_of_static_extents() -> bool {
@@ -351,11 +335,6 @@ public:
         return Bare<A>::dimension();
     }
 
-    static consteval auto is_owning_type() -> bool
-    {
-        return false;
-    }
-
     static consteval auto is_of_static_extents() -> bool
     {
         return false;
@@ -373,7 +352,7 @@ public:
 
     auto is_identity_chain() const -> bool
     {
-        if constexpr (A::is_owning_type())
+        if constexpr (ArrayType<A>)
         {
             return is_identity();
         }
@@ -544,11 +523,6 @@ public:
         return D;
     }
 
-    static consteval auto is_owning_type() -> bool
-    {
-        return false;
-    }
-
     static consteval auto is_of_static_extents() -> bool
     {
         return false;
@@ -575,7 +549,7 @@ public:
 
     auto is_identity_chain() const -> bool
     {
-        if constexpr (A::is_owning_type())
+        if constexpr (ArrayType<A>)
         {
             return is_identity();
         }
@@ -805,11 +779,6 @@ public:
         return D;
     }
 
-    static consteval auto is_owning_type() -> bool
-    {
-        return false;
-    }
-
     static consteval auto is_of_static_extents() -> bool
     {
         return false;
@@ -832,7 +801,7 @@ public:
 
     auto is_identity_chain() const -> bool
     {
-        if constexpr (A::is_owning_type())
+        if constexpr (ArrayType<A>)
         {
             return is_identity();
         }

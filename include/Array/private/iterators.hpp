@@ -22,14 +22,14 @@ public:
 
     using AReference =
         std::conditional_t <
-            A::is_owning_type(),
+            ArrayType<A>,
             std::conditional_t<IsReadOnly, const A&, A&>,
             const A&
         >;
 
     using APointer =
         std::conditional_t <
-            A::is_owning_type(),
+            ArrayType<A>,
             std::conditional_t<IsReadOnly, const A*, A*>,
             const A*
         >;

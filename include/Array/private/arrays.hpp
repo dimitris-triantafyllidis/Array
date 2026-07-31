@@ -128,8 +128,6 @@ public:
 
     static consteval auto dimension() -> int64_t;
 
-    static consteval auto is_owning_type() -> bool;
-
     static consteval auto is_of_static_extents() -> bool;
 
     static consteval auto type_extents() -> Extents<D>;
@@ -218,12 +216,6 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 consteval auto Array<T, D, E, L>::dimension() -> int64_t
 {
     return D;
-}
-
-template<typename T, int64_t D, Extents<D> E, typename L>
-consteval auto Array<T, D, E, L>::is_owning_type() -> bool
-{
-    return true;
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
