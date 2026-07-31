@@ -46,6 +46,16 @@ public:
         )
     );
 
+    static consteval auto is_read_only() -> bool
+    {
+        return true;
+    }
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return false;
+    }
+
     static consteval auto dimension() -> int64_t {
         return Bare<E>::dimension();
     }
@@ -112,6 +122,16 @@ public:
         )
     );
 
+    static consteval auto is_read_only() -> bool
+    {
+        return true;
+    }
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return false;
+    }
+
     static consteval auto dimension() -> int64_t {
         return Bare<L>::dimension();
     }
@@ -174,6 +194,16 @@ public:
         )
     );
 
+    static consteval auto is_read_only() -> bool
+    {
+        return true;
+    }
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return false;
+    }
+
     static consteval auto dimension() -> int64_t {
         return Bare<L>::dimension();
     }
@@ -233,6 +263,16 @@ public:
             std::declval<typename Bare<R>::Element>()
         )
     );
+
+    static consteval auto is_read_only() -> bool
+    {
+        return true;
+    }
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return false;
+    }
 
     static consteval auto dimension() -> int64_t {
         return Bare<R>::dimension();
@@ -306,14 +346,35 @@ public:
 
     using Element = Bare<A>::Element;
 
-    using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
-    using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
+    static consteval auto is_read_only() -> bool
+    {
+        if constexpr (IsReadOnly) {
+            return true;
+        }
+        else if constexpr ( ArrayType<A> ) {
+            return std::is_const_v<A>;
+        }
+        else {
+            return Bare<A>::is_read_only();
+        }
+    }
+
+    static_assert(IsReadOnly || !is_read_only());
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return Bare<A>::propagates_stored_elements();
+    }
 
     using ElementAccess =
         std::conditional_t <
-            ArrayType<A> || ViewType<A>,
-            ElementReference,
-            typename Bare<A>::Element
+            !propagates_stored_elements(),
+            typename Bare<A>::Element,
+            std::conditional_t <
+                is_read_only(),
+                const Element&,
+                Element&
+            >
         >;
 
     explicit BasicIndentityViewNode ( A&& a )
@@ -382,49 +443,34 @@ public:
         return view_indices;
     }
 
-    constexpr auto p_elements() const -> ElementPointer
-    {
-        return m_a.p_elements();
-    }
-
-    auto begin() const ->
-        std::conditional_t <
-            IsReadOnly,
-            ReadOnlyIndexTupleIterator<BasicIndentityViewNode>,
-            IndexTupleIterator<BasicIndentityViewNode>
-        >
+    auto begin() const -> auto
     {
         return
             std::conditional_t <
                 IsReadOnly,
                 ReadOnlyIndexTupleIterator<BasicIndentityViewNode>,
                 IndexTupleIterator<BasicIndentityViewNode>
-            >::begin_of(this);
+            >::begin_of(*this);
     }
 
-    auto cbegin() const -> ReadOnlyIndexTupleIterator<BasicIndentityViewNode>
+    auto cbegin() const -> auto
     {
-        return ReadOnlyIndexTupleIterator<BasicIndentityViewNode>::cbegin_of(this);
+        return ReadOnlyIndexTupleIterator<BasicIndentityViewNode>::cbegin_of(*this);
     }
 
-    auto end() const ->
-        std::conditional_t <
-            IsReadOnly,
-            ReadOnlyIndexTupleIterator<BasicIndentityViewNode>,
-            IndexTupleIterator<BasicIndentityViewNode>
-        >
+    auto end() const -> auto
     {
         return
             std::conditional_t <
                 IsReadOnly,
                 ReadOnlyIndexTupleIterator<BasicIndentityViewNode>,
                 IndexTupleIterator<BasicIndentityViewNode>
-            >::end_of(this);
+            >::end_of(*this);
     }
 
-    auto cend() const -> ReadOnlyIndexTupleIterator<BasicIndentityViewNode>
+    auto cend() const -> auto
     {
-        return ReadOnlyIndexTupleIterator<BasicIndentityViewNode>::cend_of(this);
+        return ReadOnlyIndexTupleIterator<BasicIndentityViewNode>::cend_of(*this);
     }
 
 private:
@@ -478,14 +524,35 @@ public:
 
     using Element = Bare<A>::Element;
 
-    using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
-    using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
+    static consteval auto is_read_only() -> bool
+    {
+        if constexpr (IsReadOnly) {
+            return true;
+        }
+        else if constexpr ( ArrayType<A> ) {
+            return std::is_const_v<A>;
+        }
+        else {
+            return Bare<A>::is_read_only();
+        }
+    }
+
+    static_assert(IsReadOnly || !is_read_only());
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return Bare<A>::propagates_stored_elements();
+    }
 
     using ElementAccess =
         std::conditional_t <
-            ArrayType<A> || ViewType<A>,
-            ElementReference,
-            typename Bare<A>::Element
+            !propagates_stored_elements(),
+            typename Bare<A>::Element,
+            std::conditional_t <
+                is_read_only(),
+                const Element&,
+                Element&
+            >
         >;
 
     BasicSliceViewNode (
@@ -642,49 +709,34 @@ public:
         return array_indices;
     }
 
-    constexpr auto p_elements() const -> ElementPointer
-    {
-        return m_a.p_elements();
-    }
-
-    auto begin() const ->
-        std::conditional_t <
-            IsReadOnly,
-            ReadOnlyIndexTupleIterator<BasicSliceViewNode>,
-            IndexTupleIterator<BasicSliceViewNode>
-        >
+    auto begin() const -> auto
     {
         return
             std::conditional_t <
                 IsReadOnly,
                 ReadOnlyIndexTupleIterator<BasicSliceViewNode>,
                 IndexTupleIterator<BasicSliceViewNode>
-            >::begin_of(this);
+            >::begin_of(*this);
     }
 
-    auto cbegin() const -> ReadOnlyIndexTupleIterator<BasicSliceViewNode>
+    auto cbegin() const -> auto
     {
-        return ReadOnlyIndexTupleIterator<BasicSliceViewNode>::cbegin_of(this);
+        return ReadOnlyIndexTupleIterator<BasicSliceViewNode>::cbegin_of(*this);
     }
 
-    auto end() const ->
-        std::conditional_t <
-            IsReadOnly,
-            ReadOnlyIndexTupleIterator<BasicSliceViewNode>,
-            IndexTupleIterator<BasicSliceViewNode>
-        >
+    auto end() const -> auto
     {
         return
             std::conditional_t <
                 IsReadOnly,
                 ReadOnlyIndexTupleIterator<BasicSliceViewNode>,
                 IndexTupleIterator<BasicSliceViewNode>
-            >::end_of(this);
+            >::end_of(*this);
     }
 
-    auto cend() const -> ReadOnlyIndexTupleIterator<BasicSliceViewNode>
+    auto cend() const -> auto
     {
-        return ReadOnlyIndexTupleIterator<BasicSliceViewNode>::cend_of(this);
+        return ReadOnlyIndexTupleIterator<BasicSliceViewNode>::cend_of(*this);
     }
 
 private:
@@ -747,14 +799,35 @@ public:
 
     using Element = Bare<A>::Element;
 
-    using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
-    using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
+    static consteval auto is_read_only() -> bool
+    {
+        if constexpr (IsReadOnly) {
+            return true;
+        }
+        else if constexpr ( ArrayType<A> ) {
+            return std::is_const_v<A>;
+        }
+        else {
+            return Bare<A>::is_read_only();
+        }
+    }
+
+    static_assert(IsReadOnly || !is_read_only());
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return Bare<A>::propagates_stored_elements();
+    }
 
     using ElementAccess =
         std::conditional_t <
-            ArrayType<A> || ViewType<A>,
-            ElementReference,
-            typename Bare<A>::Element
+            !propagates_stored_elements(),
+            typename Bare<A>::Element,
+            std::conditional_t <
+                is_read_only(),
+                const Element&,
+                Element&
+            >
         >;
 
     explicit BasicBroadcastViewNode (
@@ -850,49 +923,34 @@ public:
         return array_indices;
     }
 
-    constexpr auto p_elements() const -> ElementPointer
-    {
-        return m_a.p_elements();
-    }
-
-    auto begin() const ->
-        std::conditional_t <
-            IsReadOnly,
-            ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>,
-            IndexTupleIterator<BasicBroadcastViewNode>
-        >
+    auto begin() const -> auto
     {
         return
             std::conditional_t <
                 IsReadOnly,
                 ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>,
                 IndexTupleIterator<BasicBroadcastViewNode>
-            >::begin_of(this);
+            >::begin_of(*this);
     }
 
-    auto cbegin() const -> ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>
+    auto cbegin() const -> auto
     {
-        return ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>::cbegin_of(this);
+        return ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>::cbegin_of(*this);
     }
 
-    auto end() const ->
-        std::conditional_t <
-            IsReadOnly,
-            ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>,
-            IndexTupleIterator<BasicBroadcastViewNode>
-        >
+    auto end() const -> auto
     {
         return
             std::conditional_t <
                 IsReadOnly,
                 ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>,
                 IndexTupleIterator<BasicBroadcastViewNode>
-            >::end_of(this);
+            >::end_of(*this);
     }
 
-    auto cend() const -> ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>
+    auto cend() const -> auto
     {
-        return ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>::cend_of(this);
+        return ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>::cend_of(*this);
     }
 
 private:

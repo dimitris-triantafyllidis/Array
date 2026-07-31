@@ -126,6 +126,8 @@ public:
     using Element = T;
     using Layout = L;
 
+    static consteval auto propagates_stored_elements() -> bool;
+
     static consteval auto dimension() -> int64_t;
 
     static consteval auto is_of_static_extents() -> bool;
@@ -193,13 +195,13 @@ public:
     constexpr auto p_elements() const -> const T*;
     constexpr auto p_elements() -> T*;
 
-    constexpr auto begin() -> IndexTupleIterator<Array>;
-    constexpr auto begin() const -> ReadOnlyIndexTupleIterator<Array>;
-    constexpr auto cbegin() const -> ReadOnlyIndexTupleIterator<Array>;
+    constexpr auto begin() -> auto;
+    constexpr auto begin() const -> auto;
+    constexpr auto cbegin() const -> auto;
 
-    constexpr auto end() -> IndexTupleIterator<Array>;
-    constexpr auto end() const -> ReadOnlyIndexTupleIterator<Array>;
-    constexpr auto cend() const -> ReadOnlyIndexTupleIterator<Array>;
+    constexpr auto end() -> auto;
+    constexpr auto end() const -> auto;
+    constexpr auto cend() const -> auto;
 
     template<typename... NewExtents> requires ((sizeof...(NewExtents) == D) && (std::is_integral_v<NewExtents> && ...))
     auto resize(NewExtents... extents) -> void requires (all_of_extents_dynamic(E));
@@ -211,6 +213,12 @@ private:
     ArrayMembers<T, D, E, L, all_of_extents_static(E)> m;
 
 };
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+consteval auto Array<T, D, E, L>::propagates_stored_elements() -> bool
+{
+    return true;
+}
 
 template<typename T, int64_t D, Extents<D> E, typename L>
 consteval auto Array<T, D, E, L>::dimension() -> int64_t
@@ -503,37 +511,37 @@ constexpr auto Array<T, D, E, L>::p_elements() -> T*
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L>::begin() -> IndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::begin() -> auto
 {
-    return IndexTupleIterator<Array>::begin_of(this);
+    return IndexTupleIterator<Array>::begin_of(*this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L>::begin() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::begin() const -> auto
 {
-    return ReadOnlyIndexTupleIterator<Array>::begin_of(this);
+    return ReadOnlyIndexTupleIterator<Array>::begin_of(*this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L>::cbegin() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::cbegin() const -> auto
 {
     return begin();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L>::end() -> IndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::end() -> auto
 {
-    return IndexTupleIterator<Array>::end_of(this);
+    return IndexTupleIterator<Array>::end_of(*this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L>::end() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::end() const -> auto
 {
-    return ReadOnlyIndexTupleIterator<Array>::end_of(this);
+    return ReadOnlyIndexTupleIterator<Array>::end_of(*this);
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
-constexpr auto Array<T, D, E, L>::cend() const -> ReadOnlyIndexTupleIterator<Array>
+constexpr auto Array<T, D, E, L>::cend() const -> auto
 {
     return end();
 }

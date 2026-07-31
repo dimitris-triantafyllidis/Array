@@ -146,16 +146,6 @@ template<typename A>
 using ReadOnlyIndexTupleIterator = BasicIndexTupleIterator<A, true>;
 
 
-template<typename A, bool IsReadOnly>
-class BasicContiguousElementIterator;
-
-template<typename A>
-using ContiguousElementIterator = BasicContiguousElementIterator<A, false>;
-
-template<typename A>
-using ReadOnlyContiguousElementIterator = BasicContiguousElementIterator<A, true>;
-
-
 // View types
 
 template <
@@ -372,20 +362,9 @@ concept IndexTupleIteratorType = IsIndexTupleIteratorType<std::remove_cvref_t<T>
 
 
 template <typename T>
-struct IsContiguousElementIteratorType : std::false_type {};
-
-template <typename A, bool IsReadOnly>
-struct IsContiguousElementIteratorType<BasicContiguousElementIterator<A, IsReadOnly>> : std::true_type {};
-
-template <typename T>
-concept ContiguousElementIteratorType = IsContiguousElementIteratorType<std::remove_cvref_t<T>>::value;
-
-
-template <typename T>
 struct IsIteratorType :
     std::bool_constant <
-        IsIndexTupleIteratorType<T>::value        ||
-        IsContiguousElementIteratorType<T>::value
+        IsIndexTupleIteratorType<T>::value
     > {};
 
 template <typename T>

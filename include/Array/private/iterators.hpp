@@ -18,7 +18,38 @@ class BasicIndexTupleIterator
 
 public:
 
-    using Element = A::Element;
+    using Element = Bare<A>::Element;
+
+    static consteval auto is_read_only() -> bool
+    {
+        if constexpr (IsReadOnly) {
+            return true;
+        }
+        else if constexpr ( ArrayType<A> ) {
+            return std::is_const_v<A>;
+        }
+        else {
+            return Bare<A>::is_read_only();
+        }
+    }
+
+    static_assert(IsReadOnly || !is_read_only());
+
+    static consteval auto propagates_stored_elements() -> bool
+    {
+        return Bare<A>::propagates_stored_elements();
+    }
+
+    using ElementAccess =
+        std::conditional_t <
+            !propagates_stored_elements(),
+            typename Bare<A>::Element,
+            std::conditional_t <
+                is_read_only(),
+                const Element&,
+                Element&
+            >
+        >;
 
     using AReference =
         std::conditional_t <
@@ -27,42 +58,35 @@ public:
             const A&
         >;
 
-    using APointer =
-        std::conditional_t <
-            ArrayType<A>,
-            std::conditional_t<IsReadOnly, const A*, A*>,
-            const A*
-        >;
-
-    using ElementReference = std::conditional_t<IsReadOnly, const Element&, Element&>;
-    using ElementPointer   = std::conditional_t<IsReadOnly, const Element*, Element*>;
+    using ElementPointer = std::conditional_t<IsReadOnly, const Element*, Element*>;
 
     explicit BasicIndexTupleIterator (
-        APointer p_a,
-        const Extents<A::dimension()> &cursor = make_extents_filled<A::dimension()>(0)
+        AReference a,
+        const Extents<Bare<A>::dimension()> &cursor = make_extents_filled<Bare<A>::dimension()>(0)
     )
-    : m_p_a(p_a),
-    m_cursor(cursor),
-    m_is_at_end(p_a->size() == 0)
+    : m_a(a),
+      m_cursor(cursor),
+      m_is_at_end(a.size() == 0)
     {}
 
-    auto operator*() const -> ElementReference
+    auto operator*() const -> ElementAccess
     {
-        return (*m_p_a)[m_cursor];
+        return m_a[m_cursor];
     }
 
     auto operator->() const -> ElementPointer
+    requires (propagates_stored_elements())
     {
-        return &(*m_p_a)[m_cursor];
+        return &(m_a[m_cursor]);
     }
 
     auto operator++() -> BasicIndexTupleIterator&
     {
         m_is_at_end = false;
 
-        for (int64_t i = A::dimension() - 1; i >= 0; i--)
+        for (int64_t i = Bare<A>::dimension() - 1; i >= 0; i--)
         {
-            if (m_cursor[i] < m_p_a->extents(i) - 1)
+            if (m_cursor[i] < m_a.extents(i) - 1)
             {
                 m_cursor[i]++;
                 return *this;
@@ -89,7 +113,7 @@ public:
     {
         m_is_at_end = false;
 
-        for (int64_t i = A::dimension() - 1; i >= 0; i--)
+        for (int64_t i = Bare<A>::dimension() - 1; i >= 0; i--)
         {
             if (m_cursor[i] >= 1)
             {
@@ -98,7 +122,7 @@ public:
             }
             else
             {
-                m_cursor[i] = m_p_a->extents(i) - 1;
+                m_cursor[i] = m_a.xtents(i) - 1;
             }
         }
 
@@ -112,12 +136,12 @@ public:
         return r;
     }
 
-    auto cursor() const -> const Extents<A::dimension()>&
+    auto cursor() const -> const Extents<Bare<A>::dimension()>&
     {
         return m_cursor;
     }
 
-    auto cursor(const Extents<A::dimension()> &cursor) -> BasicIndexTupleIterator&
+    auto cursor(const Extents<Bare<A>::dimension()> &cursor) -> BasicIndexTupleIterator&
     {
         m_cursor = cursor;
         return *this;
@@ -134,40 +158,40 @@ public:
         return *this;
     }
 
-    auto p_a() const -> APointer
+    auto p_a() const -> const A*
     {
-        return m_p_a;
+        return &m_a;
     }
 
-    static auto begin_of(APointer p_a) -> BasicIndexTupleIterator<A, IsReadOnly>
+    static auto begin_of(AReference a) -> auto
     {
-        return BasicIndexTupleIterator<A, IsReadOnly>(p_a);
+        return BasicIndexTupleIterator<A, IsReadOnly>(a);
     }
 
-    static auto cbegin_of(APointer p_a) -> BasicIndexTupleIterator<A, true>
+    static auto cbegin_of(AReference a) -> auto
     {
-        return BasicIndexTupleIterator<A, true>(p_a);
+        return BasicIndexTupleIterator<A, true>(a);
     }
 
-    static auto end_of(APointer p_a) -> BasicIndexTupleIterator<A, IsReadOnly>
+    static auto end_of(AReference a) -> auto
     {
-        BasicIndexTupleIterator<A, IsReadOnly> it(p_a);
+        BasicIndexTupleIterator<A, IsReadOnly> it(a);
         it.is_at_end(true);
         return it;
     }
 
-    static auto cend_of(APointer p_a) -> BasicIndexTupleIterator<A, true>
+    static auto cend_of(AReference a) -> auto
     {
-        BasicIndexTupleIterator<A, true> it(p_a);
+        BasicIndexTupleIterator<A, true> it(a);
         it.is_at_end(true);
         return it;
     }
 
 private:
 
-    APointer                m_p_a       = nullptr;
-    Extents<A::dimension()> m_cursor    = make_extents_filled<A::dimension()>(0);
-    bool                    m_is_at_end = false;
+    AReference                    m_a;
+    Extents<Bare<A>::dimension()> m_cursor    = make_extents_filled<Bare<A>::dimension()>(0);
+    bool                          m_is_at_end = false;
 };
 
 template<typename AL, bool IsReadOnlyL, typename AR, bool IsReadOnlyR>
@@ -181,11 +205,5 @@ auto operator== (
         lhs.cursor()    == rhs.cursor()     &&
         lhs.is_at_end() == rhs.is_at_end();
 }
-
-template<typename A>
-BasicIndexTupleIterator(A&) -> BasicIndexTupleIterator<A, false>;
-
-template<typename A>
-BasicIndexTupleIterator(const A&) -> BasicIndexTupleIterator<A, true>;
 
 #endif // ITERATORS_HPP
