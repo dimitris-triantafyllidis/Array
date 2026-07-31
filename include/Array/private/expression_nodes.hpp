@@ -176,7 +176,10 @@ class BinaryRScalarOpNode {
 public:
 
     using Element = decltype (
-        Op {} ( std::declval<typename Bare<L>::Element>(), std::declval<R>() )
+        Op {} (
+            std::declval<typename Bare<L>::Element>(),
+            std::declval<Bare<R>>()
+        )
     );
 
     static consteval auto dimension() -> int64_t {
@@ -237,7 +240,10 @@ class BinaryLScalarOpNode {
 public:
 
     using Element = decltype (
-        Op {} ( std::declval<typename Bare<R>::Element>(), std::declval<L>() )
+        Op {} (
+            std::declval<Bare<L>>(),
+            std::declval<typename Bare<R>::Element>()
+        )
     );
 
     static consteval auto dimension() -> int64_t {
@@ -344,14 +350,17 @@ public:
     {
         return Bare<A>::dimension();
     }
+
     static consteval auto is_owning_type() -> bool
     {
         return false;
     }
+
     static consteval auto is_of_static_extents() -> bool
     {
         return false;
     }
+
     static consteval auto type_extents() -> Extents<Bare<A>::dimension()>
     {
         return make_extents_filled<Bare<A>::dimension()>(dynamic_extent);
