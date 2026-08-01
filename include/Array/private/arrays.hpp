@@ -378,11 +378,60 @@ Array<T, D, E, L>::Array(const Exp &e)
         throw_with_context<std::domain_error>("Domain error. Check source location.");
     }
 
-    auto it = begin();
-
-    for (int64_t i = 0; i < size(); i++)
+    if constexpr (D == 1)
     {
-        *it++ = e[it.cursor()];
+        for ( int64_t i = 0; i < extents(0); i++ )
+            (*this)[i] = e[{i}];
+    }
+    else if constexpr (D == 2)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+            (*this)[i, j] = e[{i, j}];
+    }
+    else if constexpr (D == 3)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+            (*this)[i, j, k] = e[{i, j, k}];
+    }
+    else if constexpr (D == 4)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+        for ( int64_t l = 0; l < extents(3); l++ )
+            (*this)[i, j, k, l] = e[{i, j, k, l}];
+    }
+    else if constexpr (D == 5)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+        for ( int64_t l = 0; l < extents(3); l++ )
+        for ( int64_t m = 0; m < extents(4); m++ )
+            (*this)[i, j, k, l, m] = e[{i, j, k, l, m}];
+    }
+    else if constexpr (D == 6)
+    {
+
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+        for ( int64_t l = 0; l < extents(3); l++ )
+        for ( int64_t m = 0; m < extents(4); m++ )
+        for ( int64_t n = 0; n < extents(5); n++ )
+            (*this)[i, j, k, l, m, n] = e[{i, j, k, l, m, n}];
+    }
+    else
+    {
+        auto it = begin();
+
+        for (int64_t i = 0; i < size(); i++)
+        {
+            *it++ = e[it.cursor()];
+        }
     }
 }
 
@@ -426,11 +475,60 @@ auto Array<T, D, E, L>::operator=(const Exp &e) -> Array&
         throw_with_context<std::domain_error>("Domain error. Check source location.");
     }
 
-    auto it = begin();
-
-    for (int64_t i = 0; i < size(); i++)
+    if constexpr (D == 1)
     {
-        *it++ = e[it.cursor()];
+        for ( int64_t i = 0; i < extents(0); i++ )
+            (*this)[i] = e[{i}];
+    }
+    else if constexpr (D == 2)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+            (*this)[i, j] = e[{i, j}];
+    }
+    else if constexpr (D == 3)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+            (*this)[i, j, k] = e[{i, j, k}];
+    }
+    else if constexpr (D == 4)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+        for ( int64_t l = 0; l < extents(3); l++ )
+            (*this)[i, j, k, l] = e[{i, j, k, l}];
+    }
+    else if constexpr (D == 5)
+    {
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+        for ( int64_t l = 0; l < extents(3); l++ )
+        for ( int64_t m = 0; m < extents(4); m++ )
+            (*this)[i, j, k, l, m] = e[{i, j, k, l, m}];
+    }
+    else if constexpr (D == 6)
+    {
+
+        for ( int64_t i = 0; i < extents(0); i++ )
+        for ( int64_t j = 0; j < extents(1); j++ )
+        for ( int64_t k = 0; k < extents(2); k++ )
+        for ( int64_t l = 0; l < extents(3); l++ )
+        for ( int64_t m = 0; m < extents(4); m++ )
+        for ( int64_t n = 0; n < extents(5); n++ )
+            (*this)[i, j, k, l, m, n] = e[{i, j, k, l, m, n}];
+    }
+    else
+    {
+        auto it = begin();
+
+        for (int64_t i = 0; i < size(); i++)
+        {
+            *it++ = e[it.cursor()];
+        }
     }
 
     return *this;
