@@ -65,8 +65,7 @@ public:
         const Extents<Bare<A>::dimension()> &cursor = make_extents_filled<Bare<A>::dimension()>(0)
     )
     : m_a(a),
-      m_cursor(cursor),
-      m_is_at_end(a.size() == 0)
+      m_cursor(cursor)
     {}
 
     auto operator*() const -> ElementAccess
@@ -82,7 +81,7 @@ public:
 
     auto operator++() -> BasicIndexTupleIterator&
     {
-        for (int64_t i = Bare<A>::dimension() - 1; i >= 0; i--)
+        for (int64_t i = Bare<A>::dimension() - 1; i >= 1; i--)
         {
             if (++m_cursor[i] != m_a.extents(i))
             {
@@ -91,7 +90,7 @@ public:
             m_cursor[i] = 0;
         }
 
-        m_is_at_end = true;
+        m_cursor[0]++;
 
         return *this;
     }
@@ -105,23 +104,23 @@ public:
 
     auto operator--() -> BasicIndexTupleIterator&
     {
-        m_is_at_end = false;
-
-        for (int64_t i = Bare<A>::dimension() - 1; i >= 0; i--)
+        for (int64_t i = Bare<A>::dimension() - 1; i >= 1; i--)
         {
             if (--m_cursor[i] >= 0)
             {
-                break;
+                return *this;
             }
             m_cursor[i] = m_a.extents(i) - 1;
         }
+
+        m_cursor[0]--;
 
         return *this;
     }
 
     auto operator--(int) -> BasicIndexTupleIterator
     {
-        BasicIndexTupleIterator<A, IsReadOnly> r = *this;
+        BasicIndexTupleIterator<A, IsReadOnly> r(*this);
         --(*this);
         return r;
     }
@@ -139,12 +138,16 @@ public:
 
     auto is_at_end() const -> const bool&
     {
-        return m_is_at_end;
+        return m_cursor[0] == m_a.extents(0);
     }
 
     auto is_at_end(const bool &flag) -> BasicIndexTupleIterator&
     {
-        m_is_at_end = flag;
+        if ( flag )
+        {
+            m_cursor = make_extents_filled<Bare<A>::dimension()>(0);
+        }
+        m_cursor[0] = m_a.extents(0);
         return *this;
     }
 
@@ -181,7 +184,6 @@ private:
 
     AReference                    m_a;
     Extents<Bare<A>::dimension()> m_cursor    = make_extents_filled<Bare<A>::dimension()>(0);
-    bool                          m_is_at_end = false;
 };
 
 template<typename AL, bool IsReadOnlyL, typename AR, bool IsReadOnlyR>
@@ -191,9 +193,8 @@ auto operator== (
 ) -> bool
 {
     return
-        lhs.p_a()       == rhs.p_a()        &&
-        lhs.cursor()    == rhs.cursor()     &&
-        lhs.is_at_end() == rhs.is_at_end();
+        lhs.p_a()       == rhs.p_a()     &&
+        lhs.cursor()    == rhs.cursor();
 }
 
 #endif // ITERATORS_HPP
