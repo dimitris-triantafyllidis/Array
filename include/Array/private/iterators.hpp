@@ -82,19 +82,13 @@ public:
 
     auto operator++() -> BasicIndexTupleIterator&
     {
-        m_is_at_end = false;
-
         for (int64_t i = Bare<A>::dimension() - 1; i >= 0; i--)
         {
-            if (m_cursor[i] < m_a.extents(i) - 1)
+            if (++m_cursor[i] != m_a.extents(i))
             {
-                m_cursor[i]++;
                 return *this;
             }
-            else
-            {
-                m_cursor[i] = 0;
-            }
+            m_cursor[i] = 0;
         }
 
         m_is_at_end = true;
@@ -115,15 +109,11 @@ public:
 
         for (int64_t i = Bare<A>::dimension() - 1; i >= 0; i--)
         {
-            if (m_cursor[i] >= 1)
+            if (--m_cursor[i] >= 0)
             {
-                m_cursor[i]--;
                 break;
             }
-            else
-            {
-                m_cursor[i] = m_a.xtents(i) - 1;
-            }
+            m_cursor[i] = m_a.extents(i) - 1;
         }
 
         return *this;
