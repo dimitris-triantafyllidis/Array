@@ -88,6 +88,20 @@
         "CMAKE_INTERPROCEDURAL_OPTIMIZATION": true
       }
     },
+    {
+      "name": "debug-info",
+      "hidden": true,
+      "cacheVariables": {
+        "GENERATE_DEBUG_SYMBOLS": "ON"
+      }
+    },
+    {
+      "name": "frame-pointer",
+      "hidden": true,
+      "cacheVariables": {
+        "ENABLE_FRAME_POINTER": "ON"
+      }
+    },
     { "name": "linux-gcc-debug",         "inherits": [ "linux-gcc",   "debug"          ] },
     { "name": "linux-gcc-release",       "inherits": [ "linux-gcc",   "release"        ] },
     { "name": "linux-gcc-release-lto",   "inherits": [ "linux-gcc",   "release", "lto" ] },
@@ -96,7 +110,8 @@
     { "name": "linux-clang-release-lto", "inherits": [ "linux-clang", "release", "lto" ] },
     { "name": "windows-cl-debug",        "inherits": [ "windows-cl",  "debug"          ] },
     { "name": "windows-cl-release",      "inherits": [ "windows-cl",  "release"        ] },
-    { "name": "windows-cl-release-lto",  "inherits": [ "windows-cl",  "release", "lto" ] }
+    { "name": "windows-cl-release-lto",  "inherits": [ "windows-cl",  "release", "lto" ] },
+    { "name": "custom",                  "inherits": [ "linux-gcc",   "release", "lto" ] }
   ],
   "buildPresets": [
     { "name": "linux-gcc-debug",         "configurePreset": "linux-gcc-debug"         },
@@ -107,6 +122,7 @@
     { "name": "linux-clang-release-lto", "configurePreset": "linux-clang-release-lto" },
     { "name": "windows-cl-debug",        "configurePreset": "windows-cl-debug"        },
     { "name": "windows-cl-release",      "configurePreset": "windows-cl-release"      },
-    { "name": "windows-cl-release-lto",  "configurePreset": "windows-cl-release-lto"  }
+    { "name": "windows-cl-release-lto",  "configurePreset": "windows-cl-release-lto"  },
+    { "name": "custom",                  "configurePreset": "custom"                  }
   ]
 }
