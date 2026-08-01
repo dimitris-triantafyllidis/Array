@@ -92,6 +92,41 @@ public:
         return m_e.extents()[i];
     }
 
+    auto size() const -> int64_t
+    {
+        return m_e.size();
+    }
+
+    auto begin() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<UnaryOpNode>,
+                IndexTupleIterator<UnaryOpNode>
+            >::begin_of(*this);
+    }
+
+    auto cbegin() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<UnaryOpNode>::cbegin_of(*this);
+    }
+
+    auto end() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<UnaryOpNode>,
+                IndexTupleIterator<UnaryOpNode>
+            >::end_of(*this);
+    }
+
+    auto cend() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<UnaryOpNode>::cend_of(*this);
+    }
+
 private:
 
     ExpressionNodeMemberStorage<Op> m_op;
@@ -171,6 +206,41 @@ public:
         return m_l.extents()[i];
     }
 
+    auto size() const -> int64_t
+    {
+        return m_l.size();
+    }
+
+    auto begin() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<BinaryZipMapOpNode>,
+                IndexTupleIterator<BinaryZipMapOpNode>
+            >::begin_of(*this);
+    }
+
+    auto cbegin() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<BinaryZipMapOpNode>::cbegin_of(*this);
+    }
+
+    auto end() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<BinaryZipMapOpNode>,
+                IndexTupleIterator<BinaryZipMapOpNode>
+            >::end_of(*this);
+    }
+
+    auto cend() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<BinaryZipMapOpNode>::cend_of(*this);
+    }
+
 private:
 
     ExpressionNodeMemberStorage<Op> m_op;
@@ -241,6 +311,41 @@ public:
         return m_l.extents()[i];
     }
 
+    auto size() const -> int64_t
+    {
+        return m_l.size();
+    }
+
+    auto begin() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<BinaryRScalarOpNode>,
+                IndexTupleIterator<BinaryRScalarOpNode>
+            >::begin_of(*this);
+    }
+
+    auto cbegin() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<BinaryRScalarOpNode>::cbegin_of(*this);
+    }
+
+    auto end() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<BinaryRScalarOpNode>,
+                IndexTupleIterator<BinaryRScalarOpNode>
+            >::end_of(*this);
+    }
+
+    auto cend() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<BinaryRScalarOpNode>::cend_of(*this);
+    }
+
 private:
 
     ExpressionNodeMemberStorage<Op> m_op;
@@ -309,6 +414,41 @@ public:
 
     constexpr auto extents(const int64_t &i) const -> const int64_t& {
         return m_r.extents()[i];
+    }
+
+    auto size() const -> int64_t
+    {
+        return m_r.size();
+    }
+
+    auto begin() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<BinaryLScalarOpNode>,
+                IndexTupleIterator<BinaryLScalarOpNode>
+            >::begin_of(*this);
+    }
+
+    auto cbegin() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<BinaryLScalarOpNode>::cbegin_of(*this);
+    }
+
+    auto end() const -> auto
+    {
+        return
+            std::conditional_t <
+                is_read_only(),
+                ReadOnlyIndexTupleIterator<BinaryLScalarOpNode>,
+                IndexTupleIterator<BinaryLScalarOpNode>
+            >::end_of(*this);
+    }
+
+    auto cend() const -> auto
+    {
+        return ReadOnlyIndexTupleIterator<BinaryLScalarOpNode>::cend_of(*this);
     }
 
 private:
@@ -447,7 +587,7 @@ public:
     {
         return
             std::conditional_t <
-                IsReadOnly,
+                is_read_only(),
                 ReadOnlyIndexTupleIterator<BasicIndentityViewNode>,
                 IndexTupleIterator<BasicIndentityViewNode>
             >::begin_of(*this);
@@ -462,7 +602,7 @@ public:
     {
         return
             std::conditional_t <
-                IsReadOnly,
+                is_read_only(),
                 ReadOnlyIndexTupleIterator<BasicIndentityViewNode>,
                 IndexTupleIterator<BasicIndentityViewNode>
             >::end_of(*this);
@@ -713,7 +853,7 @@ public:
     {
         return
             std::conditional_t <
-                IsReadOnly,
+                is_read_only(),
                 ReadOnlyIndexTupleIterator<BasicSliceViewNode>,
                 IndexTupleIterator<BasicSliceViewNode>
             >::begin_of(*this);
@@ -728,7 +868,7 @@ public:
     {
         return
             std::conditional_t <
-                IsReadOnly,
+                is_read_only(),
                 ReadOnlyIndexTupleIterator<BasicSliceViewNode>,
                 IndexTupleIterator<BasicSliceViewNode>
             >::end_of(*this);
@@ -927,7 +1067,7 @@ public:
     {
         return
             std::conditional_t <
-                IsReadOnly,
+                is_read_only(),
                 ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>,
                 IndexTupleIterator<BasicBroadcastViewNode>
             >::begin_of(*this);
@@ -942,7 +1082,7 @@ public:
     {
         return
             std::conditional_t <
-                IsReadOnly,
+                is_read_only(),
                 ReadOnlyIndexTupleIterator<BasicBroadcastViewNode>,
                 IndexTupleIterator<BasicBroadcastViewNode>
             >::end_of(*this);

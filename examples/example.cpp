@@ -77,6 +77,14 @@ auto iterators() -> void
         std::println("{}", a.p_elements()[i]);
     }
 
+    // Iterate over an expression
+
+    auto b = a + a;
+
+    for (auto e : b) {
+        std::println("{}", e);
+    }
+
 }
 
 auto views() -> void
