@@ -10,118 +10,12 @@
 // Array layout classes
 //******************************************************************************
 
-// Affine layout class
-
-template<int64_t D, Extents<D> AxisPermutation>
-class Affine
-{
-
-    static_assert(D > 0);
-    static_assert(std::ranges::is_permutation(AxisPermutation, make_extents_iota<D>(0)));
-
-public:
-
-    constexpr Affine() = default;
-
-    constexpr explicit Affine(const Extents<D> &extents);
-
-    consteval auto dimension() const -> int64_t;
-
-    constexpr auto size() const  -> int64_t;
-    constexpr auto size_stored() const -> int64_t;
-    constexpr auto size_allocated() const -> int64_t;
-
-    constexpr auto extents() const -> const Extents<D>&;
-
-    constexpr auto offset(const Extents<D> &indices) const -> int64_t;
-
-    constexpr auto is_contiguous() const -> bool;
-    constexpr auto is_always_contiguous() const -> bool;
-
-private:
-
-    Extents<D> m_extents;
-
-};
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr Affine<D, AxisPermutation>::Affine(const Extents<D> &extents)
-: m_extents(extents)
-{}
-
-template <int64_t D, Extents<D> AxisPermutation>
-consteval auto Affine<D, AxisPermutation>::dimension() const -> int64_t
-{
-    return D;
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::size() const -> int64_t
-{
-    return std::reduce(m_extents.begin(), m_extents.end(), int64_t(1), std::multiplies{});
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::size_stored() const -> int64_t
-{
-    return size();
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::size_allocated() const -> int64_t
-{
-    return size();
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::extents() const -> const Extents<D>&
-{
-    return m_extents;
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::offset(const Extents<D> &indices) const -> int64_t
-{
-
-#ifdef ARRAY_BOUNDS_CHECKING_ON
-    check_bounds(indices, m_extents);
-#endif
-
-    int64_t offset = indices[AxisPermutation[D - 1]];
-
-    if constexpr (D > 1)
-    {
-        int64_t stride = m_extents[AxisPermutation[D - 1]];
-        offset += indices[AxisPermutation[D - 2]] * stride;
-
-        for (int64_t i = D - 2; i > 0; i--)
-        {
-            stride *= m_extents[AxisPermutation[i]];
-            offset += indices[AxisPermutation[i - 1]] * stride;
-        }
-    }
-
-    return offset;
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::is_contiguous() const -> bool
-{
-    return true;
-}
-
-template <int64_t D, Extents<D> AxisPermutation>
-constexpr auto Affine<D, AxisPermutation>::is_always_contiguous() const -> bool
-{
-    return true;
-}
-
 // Blocked layout class
 
 template <
     int64_t D,
-    Extents<D> AxisPermutation = make_extents_iota<D>(0),
-    Extents<D> BlockExtents = make_extents_filled<D>(1)
+    Extents<D> AxisPermutation,
+    Extents<D> BlockExtents
 >
 class Blocked
 {
@@ -219,6 +113,11 @@ constexpr auto Blocked<D, AxisPermutation, BlockExtents>::offset(const Extents<D
             stride *= m_extents[AxisPermutation[i]] >> s_block_extents_log2[AxisPermutation[i]];
             block_start_offset += (indices[AxisPermutation[i - 1]] >> s_block_extents_log2[AxisPermutation[i - 1]]) * stride;
         }
+    }
+
+    if constexpr (s_block_size == 1)
+    {
+        return block_start_offset;
     }
 
     block_start_offset *= s_block_size;
