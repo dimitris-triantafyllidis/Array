@@ -15,7 +15,8 @@
 template <
     int64_t D,
     Extents<D> AxisPermutation,
-    Extents<D> BlockExtents
+    Extents<D> BlockExtents,
+    Extents<D> BlockAxisPermutation
 >
 class Blocked
 {
@@ -53,8 +54,8 @@ private:
 
 };
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr Blocked<D, AxisPermutation, BlockExtents>::Blocked(const Extents<D> &extents)
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::Blocked(const Extents<D> &extents)
 : m_extents(extents)
 {
     for (int64_t i = 0; i < D; i++)
@@ -63,38 +64,38 @@ constexpr Blocked<D, AxisPermutation, BlockExtents>::Blocked(const Extents<D> &e
     }
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-consteval auto Blocked<D, AxisPermutation, BlockExtents>::dimension() const -> int64_t
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+consteval auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::dimension() const -> int64_t
 {
     return D;
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::size() const -> int64_t
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::size() const -> int64_t
 {
     return std::reduce(m_extents.begin(), m_extents.end(), int64_t(1), std::multiplies{});
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::size_stored() const -> int64_t
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::size_stored() const -> int64_t
 {
     return size_allocated();
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::size_allocated() const -> int64_t
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::size_allocated() const -> int64_t
 {
     return std::reduce(m_extents_allocated.begin(), m_extents_allocated.end(), int64_t(1), std::multiplies{});
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::extents() const -> const Extents<D>&
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::extents() const -> const Extents<D>&
 {
     return m_extents;
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::offset(const Extents<D> &indices) const -> int64_t
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::offset(const Extents<D> &indices) const -> int64_t
 {
 
 #ifdef ARRAY_BOUNDS_CHECKING_ON
@@ -122,25 +123,25 @@ constexpr auto Blocked<D, AxisPermutation, BlockExtents>::offset(const Extents<D
 
     block_start_offset *= s_block_size;
 
-    int64_t offset = block_start_offset + (indices[AxisPermutation[D - 1]] % s_block_extents[AxisPermutation[D - 1]]);
+    int64_t offset = block_start_offset + (indices[BlockAxisPermutation[D - 1]] % s_block_extents[BlockAxisPermutation[D - 1]]);
 
     if constexpr (D > 1)
     {
-        int64_t stride = s_block_extents[AxisPermutation[D - 1]];
-        offset += (indices[AxisPermutation[D - 2]] % s_block_extents[AxisPermutation[D - 2]]) * stride;
+        int64_t stride = s_block_extents[BlockAxisPermutation[D - 1]];
+        offset += (indices[BlockAxisPermutation[D - 2]] % s_block_extents[BlockAxisPermutation[D - 2]]) * stride;
 
         for(int64_t i = D - 2; i > 0; i--)
         {
-            stride *= s_block_extents[AxisPermutation[i]];
-            offset += (indices[AxisPermutation[i - 1]] % s_block_extents[AxisPermutation[i - 1]]) * stride;
+            stride *= s_block_extents[BlockAxisPermutation[i]];
+            offset += (indices[BlockAxisPermutation[i - 1]] % s_block_extents[BlockAxisPermutation[i - 1]]) * stride;
         }
     }
 
     return offset;
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::is_contiguous() const -> bool
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::is_contiguous() const -> bool
 {
     for (int64_t i = 1; i < D; i++)
     {
@@ -153,8 +154,8 @@ constexpr auto Blocked<D, AxisPermutation, BlockExtents>::is_contiguous() const 
     return true;
 }
 
-template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents>
-constexpr auto Blocked<D, AxisPermutation, BlockExtents>::is_always_contiguous() const -> bool
+template <int64_t D, Extents<D> AxisPermutation, Extents<D> BlockExtents, Extents<D> BlockAxisPermutation>
+constexpr auto Blocked<D, AxisPermutation, BlockExtents, BlockAxisPermutation>::is_always_contiguous() const -> bool
 {
     return false;
 }
