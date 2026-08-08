@@ -58,7 +58,7 @@ auto constructors() -> void
 
 auto iterators() -> void
 {
-    Array<float, 2, {dynamic_extent, dynamic_extent}, Morton<2>> a(4, 4);
+    Array<float, 2> a(4, 4);
 
     float f = 0;
 
@@ -111,6 +111,33 @@ auto numerics() -> void
     Array<int, 1, {2}> a = {2, 3};
 
     auto b = a + a * 3;
+
+}
+
+auto layouts() -> void
+{
+
+    using MyBlockedLayout =
+        Blocked <
+            2,
+            {0, 1},
+            {8, 8},
+            {0, 1},
+            {4, 4},
+            {0, 1},
+            {2, 2},
+            {0, 1}
+        >;
+
+    auto a = Array<int64_t, 2, {dynamic_extent, dynamic_extent}, MyBlockedLayout>(16, 16);
+
+    for ( int64_t i = 0; i < a.extents(0); i++ )
+    for ( int64_t j = 0; j < a.extents(1); j++ )
+        a[i, j] = i * 1000 + j;
+
+    for ( int64_t i = 0; i < a.size(); i++ )
+        std::println("{}, {}", a.p_elements()[i] / 1000, a.p_elements()[i] % 1000);
+
 }
 
 auto main() -> int
@@ -119,6 +146,7 @@ auto main() -> int
     iterators();
     views();
     numerics();
+    layouts();
 
     return 0;
 }

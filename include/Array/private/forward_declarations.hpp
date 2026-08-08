@@ -119,9 +119,13 @@ constexpr auto make_array_from_tuple(const Tuple &tuple) -> auto;
 
 template <
     int64_t D,
-    Extents<D> AxisPermutation = make_extents_iota<D>(0),
-    Extents<D> BlockExtents = make_extents_filled<D>(1),
-    Extents<D> BlockAxisPermutation = make_extents_iota<D>(0)
+    Extents<D> AxisPermutation   = make_extents_iota<D>(0),
+    Extents<D> B1Extents         = make_extents_filled<D>(1),
+    Extents<D> B1AxisPermutation = make_extents_iota<D>(0),
+    Extents<D> B2Extents         = make_extents_filled<D>(1),
+    Extents<D> B2AxisPermutation = make_extents_iota<D>(0),
+    Extents<D> B3Extents         = make_extents_filled<D>(1),
+    Extents<D> B3AxisPermutation = make_extents_iota<D>(0)
 >
 class Blocked;
 
