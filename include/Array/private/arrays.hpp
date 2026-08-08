@@ -189,7 +189,7 @@ public:
     constexpr auto layout() const -> const Layout&;
 
     constexpr auto size() const -> int64_t;
-    constexpr auto size_stored() -> int64_t;
+    constexpr auto size_stored() const -> int64_t;
     constexpr auto size_allocated() const -> int64_t;
 
     constexpr auto p_elements() const -> const T*;
@@ -582,6 +582,12 @@ template<typename T, int64_t D, Extents<D> E, typename L>
 constexpr auto Array<T, D, E, L>::size() const -> int64_t
 {
     return m.layout.size();
+}
+
+template<typename T, int64_t D, Extents<D> E, typename L>
+constexpr auto Array<T, D, E, L>::size_stored() const -> int64_t
+{
+    return m.layout.size_stored();
 }
 
 template<typename T, int64_t D, Extents<D> E, typename L>
