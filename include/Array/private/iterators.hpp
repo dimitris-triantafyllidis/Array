@@ -136,7 +136,7 @@ public:
         return *this;
     }
 
-    auto is_at_end() const -> const bool&
+    auto is_at_end() const -> bool
     {
         return m_cursor[0] == m_a.extents(0);
     }
@@ -193,8 +193,8 @@ auto operator== (
 ) -> bool
 {
     return
-        lhs.p_a()       == rhs.p_a()     &&
-        lhs.cursor()    == rhs.cursor();
+        lhs.p_a()    == rhs.p_a()     &&
+        lhs.cursor() == rhs.cursor();
 }
 
 #endif // ITERATORS_HPP
