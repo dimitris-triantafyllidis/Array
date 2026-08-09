@@ -73,6 +73,16 @@ public:
         return m_a[m_cursor];
     }
 
+    template<typename... I> requires ((sizeof...(I) == Bare<A>::dimension()) && (std::is_integral_v<I> && ...)) auto operator[](I... i) const -> ElementAccess
+    {
+        return operator[]({int64_t(i)...});
+    }
+
+    auto operator[](const Extents<Bare<A>::dimension()> &indices) const -> ElementAccess
+    {
+        return m_a[m_cursor + indices];
+    }
+
     auto operator->() const -> ElementPointer
     requires (propagates_stored_elements())
     {
@@ -186,15 +196,69 @@ private:
     Extents<Bare<A>::dimension()> m_cursor    = make_extents_filled<Bare<A>::dimension()>(0);
 };
 
-template<typename AL, bool IsReadOnlyL, typename AR, bool IsReadOnlyR>
+template<typename IL, bool IsReadOnlyL, typename IR, bool IsReadOnlyR>
 auto operator== (
-    const BasicIndexTupleIterator<AL, IsReadOnlyL> &lhs,
-    const BasicIndexTupleIterator<AR, IsReadOnlyR> &rhs
+    const BasicIndexTupleIterator<IL, IsReadOnlyL> &lhs,
+    const BasicIndexTupleIterator<IR, IsReadOnlyR> &rhs
 ) -> bool
 {
     return
         lhs.p_a()    == rhs.p_a()     &&
         lhs.cursor() == rhs.cursor();
 }
+
+template<typename IL, bool IsReadOnlyL>
+auto operator+= (
+    BasicIndexTupleIterator<IL, IsReadOnlyL> &lhs,
+    const Extents<Bare<IL>::dimension()> &rhs
+) -> BasicIndexTupleIterator<IL, IsReadOnlyL>&
+{
+    lhs.cursor(lhs.cursor() + rhs);
+    return lhs;
+}
+
+template<typename IL, bool IsReadOnlyL>
+auto operator+ (
+    const BasicIndexTupleIterator<IL, IsReadOnlyL> &lhs,
+    const Extents<Bare<IL>::dimension()> &rhs
+) -> BasicIndexTupleIterator<IL, IsReadOnlyL>
+{
+    auto r = lhs;
+    r += rhs;
+    return r;
+}
+
+template<typename IR, bool IsReadOnlyR>
+auto operator+ (
+    const Extents<Bare<IR>::dimension()> &lhs,
+    const BasicIndexTupleIterator<IR, IsReadOnlyR> &rhs
+) -> BasicIndexTupleIterator<IR, IsReadOnlyR>
+{
+    auto r = rhs;
+    r += lhs;
+    return r;
+}
+
+template<typename IL, bool IsReadOnlyL>
+auto operator-= (
+    BasicIndexTupleIterator<IL, IsReadOnlyL> &lhs,
+    const Extents<Bare<IL>::dimension()> &rhs
+) -> BasicIndexTupleIterator<IL, IsReadOnlyL>&
+{
+    lhs.cursor(lhs.cursor() - rhs);
+    return lhs;
+}
+
+template<typename IL, bool IsReadOnlyL>
+auto operator- (
+    const BasicIndexTupleIterator<IL, IsReadOnlyL> &lhs,
+    const Extents<Bare<IL>::dimension()> &rhs
+) -> BasicIndexTupleIterator<IL, IsReadOnlyL>
+{
+    auto r = lhs;
+    r -= rhs;
+    return r;
+}
+
 
 #endif // ITERATORS_HPP
