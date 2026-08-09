@@ -60,6 +60,133 @@ constexpr auto operator==(const Extents<N>& lhs, const Extents<N>& rhs) -> bool
     return std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
 
+template<int64_t N>
+constexpr auto operator+=(Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] += rhs[i];
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator-=(Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] -= rhs[i];
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator*=(Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] *= rhs[i];
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator*=(Extents<N>& lhs, const int64_t& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] *= rhs;
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator/=(Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] /= rhs[i];
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator/=(Extents<N>& lhs, const int64_t& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] /= rhs;
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator%=(Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] %= rhs[i];
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator%=(Extents<N>& lhs, const int64_t& rhs) -> Extents<N>&
+{
+    for ( int64_t i = 0; i < N; i++ ) lhs[i] %= rhs;
+    return lhs;
+}
+
+template<int64_t N>
+constexpr auto operator+(const Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r += rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator-(const Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r -= rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator*(const Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r *= rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator*(const int64_t& lhs, const Extents<N>& rhs) -> Extents<N>
+{
+    Extents<N> r = rhs;
+    r *= lhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator*(const Extents<N>& lhs, const int64_t& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r *= rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator/(const Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r /= rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator/(const Extents<N>& lhs, const int64_t& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r /= rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator%(const Extents<N>& lhs, const Extents<N>& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r %= rhs;
+    return r;
+}
+
+template<int64_t N>
+constexpr auto operator%(const Extents<N>& lhs, const int64_t& rhs) -> Extents<N>
+{
+    Extents<N> r = lhs;
+    r %= rhs;
+    return r;
+}
 
 // Helper functions
 

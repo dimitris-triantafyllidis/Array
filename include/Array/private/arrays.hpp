@@ -512,7 +512,6 @@ auto Array<T, D, E, L>::operator=(const Exp &e) -> Array&
     }
     else if constexpr (D == 6)
     {
-
         for ( int64_t i = 0; i < extents(0); i++ )
         for ( int64_t j = 0; j < extents(1); j++ )
         for ( int64_t k = 0; k < extents(2); k++ )
