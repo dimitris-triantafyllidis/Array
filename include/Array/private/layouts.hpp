@@ -159,7 +159,10 @@ public:
 
     consteval auto is_always_contiguous() const -> bool
     {
-        return s_b1_size_log2 == s_b2_size_log2 == s_b3_size_log2 == 0;
+        return
+            s_b1_size_log2 == 0 &&
+            s_b2_size_log2 == 0 &&
+            s_b3_size_log2 == 0;
     }
 
 private:
