@@ -12,43 +12,32 @@
 // Specialization for BasicSliceViewNode
 
 template <typename A, bool IsReadOnly, int64_t D, Extents<D> ViewIndexSubspace>
-class std::formatter<BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>>
-{
+class std::formatter<BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace>> {
 
-public:
-
+  public:
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
-    template<typename FormatContext>
-    auto format(const BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace> &v, FormatContext &ctx) const
-    {
+    template <typename FormatContext>
+    auto format(const BasicSliceViewNode<A, IsReadOnly, D, ViewIndexSubspace> &v,
+                FormatContext &ctx) const {
         auto out = ctx.out();
         auto it = v.cbegin();
 
-        if (it == v.cend())
-        {
+        if (it == v.cend()) {
             out = std::format_to(out, "[]");
             return out;
         }
 
-        while (it != v.cend())
-        {
-            if (it == v.cbegin())
-            {
+        while (it != v.cend()) {
+            if (it == v.cbegin()) {
                 out = std::format_to(out, "{}", std::string(D, '['));
-            }
-            else if (it != v.cend())
-            {
+            } else if (it != v.cend()) {
                 int64_t n_trailing_zeroes = 0;
 
-                for (int64_t i = D - 1; i >= 0; i--)
-                {
-                    if (it.cursor()[i] == 0)
-                    {
+                for (int64_t i = D - 1; i >= 0; i--) {
+                    if (it.cursor()[i] == 0) {
                         n_trailing_zeroes++;
-                    }
-                    else
-                    {
+                    } else {
                         break;
                     }
                 }
@@ -62,32 +51,29 @@ public:
 
             it++;
 
-            if (it == v.cend())
-            {
+            if (it == v.cend()) {
                 out = std::format_to(out, "{}", std::string(D, ']'));
             }
         }
 
         return out;
     }
-
 };
 
 // Specialization for BasicBroadcastViewNode
 
 template <typename A, bool IsReadOnly, int64_t D, Extents<A::dimension()> AIndexSubspace>
-class std::formatter<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>>
-{
+class std::formatter<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>> {
 
-public:
-
+  public:
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
-    template<typename FormatContext>
-    auto format(const BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace> &v, FormatContext &ctx) const
-    {
+    template <typename FormatContext>
+    auto format(const BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace> &v,
+                FormatContext &ctx) const {
         auto out = ctx.out();
-        auto view = ReadOnlySliceViewNode<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>>(v);
+        auto view =
+            ReadOnlySliceViewNode<BasicBroadcastViewNode<A, IsReadOnly, D, AIndexSubspace>>(v);
         out = std::format_to(out, "{}", view);
         return out;
     }
@@ -95,17 +81,13 @@ public:
 
 // Specialization for Array
 
-template <typename T, int64_t D, Extents<D> E, typename L>
-class std::formatter<Array<T, D, E, L>>
-{
+template <typename T, int64_t D, Extents<D> E, typename L> class std::formatter<Array<T, D, E, L>> {
 
-public:
-
+  public:
     constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
 
-    template<typename FormatContext>
-    auto format(const Array<T, D, E, L> &a, FormatContext &ctx) const
-    {
+    template <typename FormatContext>
+    auto format(const Array<T, D, E, L> &a, FormatContext &ctx) const {
         auto out = ctx.out();
         auto view = make_read_only_slice_view<D, make_extents_iota<D>(0)>(a);
         out = std::format_to(out, "{}", view);

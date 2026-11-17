@@ -4,8 +4,7 @@
 #include <chrono>
 #include <print>
 
-auto compute_expression_manual_pointer_walk_1d() -> void
-{
+auto compute_expression_manual_pointer_walk_1d() -> void {
 
     int64_t n = 200000000;
 
@@ -19,30 +18,19 @@ auto compute_expression_manual_pointer_walk_1d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for ( int64_t i = 0; i < n; i++ )
-    {
-        r.p_elements()[i] =
-            a.p_elements()[i] +
-            b.p_elements()[i] *
-            c.p_elements()[i] +
-            2 *
-            d.p_elements()[i] *
-            e.p_elements()[i] *
-            3;
+    for (int64_t i = 0; i < n; i++) {
+        r.p_elements()[i] = a.p_elements()[i] + b.p_elements()[i] * c.p_elements()[i] +
+                            2 * d.p_elements()[i] * e.p_elements()[i] * 3;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_indexing_1d() -> void
-{
+auto compute_expression_manual_indexing_1d() -> void {
 
     int64_t n = 200000000;
 
@@ -56,23 +44,18 @@ auto compute_expression_manual_indexing_1d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for ( int64_t i = 0; i < n; i++ )
-    {
+    for (int64_t i = 0; i < n; i++) {
         r[i] = a[i] + b[i] * c[i] + 2 * d[i] * e[i] * 3;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_iterators_1d() -> void
-{
+auto compute_expression_manual_iterators_1d() -> void {
 
     int64_t n = 200000000;
 
@@ -94,8 +77,7 @@ auto compute_expression_manual_iterators_1d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (it_r != r.end())
-    {
+    while (it_r != r.end()) {
         *it_r = *it_a + *it_b * *it_c + 2 * *it_d * *it_e * 3;
         it_a++;
         it_b++;
@@ -107,16 +89,12 @@ auto compute_expression_manual_iterators_1d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_1d() -> void
-{
+auto compute_expression_1d() -> void {
 
     int64_t n = 200000000;
 
@@ -136,16 +114,12 @@ auto compute_expression_1d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_pointer_walk_2d() -> void
-{
+auto compute_expression_manual_pointer_walk_2d() -> void {
 
     int64_t n1 = 25000;
     int64_t n2 = 8000;
@@ -160,30 +134,19 @@ auto compute_expression_manual_pointer_walk_2d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for ( int64_t i = 0; i < n1 * n2; i++ )
-    {
-        r.p_elements()[i] =
-            a.p_elements()[i] +
-            b.p_elements()[i] *
-            c.p_elements()[i] +
-            2 *
-            d.p_elements()[i] *
-            e.p_elements()[i] *
-            3;
+    for (int64_t i = 0; i < n1 * n2; i++) {
+        r.p_elements()[i] = a.p_elements()[i] + b.p_elements()[i] * c.p_elements()[i] +
+                            2 * d.p_elements()[i] * e.p_elements()[i] * 3;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_indexing_2d() -> void
-{
+auto compute_expression_manual_indexing_2d() -> void {
 
     int64_t n1 = 25000;
     int64_t n2 = 8000;
@@ -198,26 +161,20 @@ auto compute_expression_manual_indexing_2d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for ( int64_t i = 0; i < n1; i++ )
-    {
-        for ( int64_t j = 0; j < n2; j++ )
-        {
+    for (int64_t i = 0; i < n1; i++) {
+        for (int64_t j = 0; j < n2; j++) {
             r[i, j] = a[i, j] + b[i, j] * c[i, j] + 2 * d[i, j] * e[i, j] * 3;
         }
     }
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_iterators_2d() -> void
-{
+auto compute_expression_manual_iterators_2d() -> void {
 
     int64_t n1 = 25000;
     int64_t n2 = 8000;
@@ -240,8 +197,7 @@ auto compute_expression_manual_iterators_2d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (it_r != r.end())
-    {
+    while (it_r != r.end()) {
         *it_r = *it_a + *it_b * *it_c + 2 * *it_d * *it_e * 3;
         it_a++;
         it_b++;
@@ -253,16 +209,12 @@ auto compute_expression_manual_iterators_2d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_2d() -> void
-{
+auto compute_expression_2d() -> void {
 
     int64_t n1 = 25000;
     int64_t n2 = 8000;
@@ -275,7 +227,6 @@ auto compute_expression_2d() -> void
 
     Array<float, 2> r(n1, n2);
 
-
     auto it_r = r.begin();
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -284,16 +235,12 @@ auto compute_expression_2d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_pointer_walk_4d() -> void
-{
+auto compute_expression_manual_pointer_walk_4d() -> void {
 
     int64_t n1 = 250;
     int64_t n2 = 80;
@@ -310,30 +257,19 @@ auto compute_expression_manual_pointer_walk_4d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for ( int64_t i = 0; i < n1 * n2 * n3 * n4; i++ )
-    {
-        r.p_elements()[i] =
-            a.p_elements()[i] +
-            b.p_elements()[i] *
-            c.p_elements()[i] +
-            2 *
-            d.p_elements()[i] *
-            e.p_elements()[i] *
-            3;
+    for (int64_t i = 0; i < n1 * n2 * n3 * n4; i++) {
+        r.p_elements()[i] = a.p_elements()[i] + b.p_elements()[i] * c.p_elements()[i] +
+                            2 * d.p_elements()[i] * e.p_elements()[i] * 3;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_indexing_4d() -> void
-{
+auto compute_expression_manual_indexing_4d() -> void {
 
     int64_t n1 = 250;
     int64_t n2 = 80;
@@ -350,15 +286,12 @@ auto compute_expression_manual_indexing_4d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    for ( int64_t i = 0; i < n1; i++ )
-    {
-        for ( int64_t j = 0; j < n2; j++ )
-        {
-            for ( int64_t k = 0; k < n3; k++ )
-            {
-                for ( int64_t l = 0; l < n4; l++ )
-                {
-                    r[i, j, k, l] = a[i, j, k, l] + b[i, j, k, l] * c[i, j, k, l] + 2 * d[i, j, k, l] * e[i, j, k, l] * 3;
+    for (int64_t i = 0; i < n1; i++) {
+        for (int64_t j = 0; j < n2; j++) {
+            for (int64_t k = 0; k < n3; k++) {
+                for (int64_t l = 0; l < n4; l++) {
+                    r[i, j, k, l] = a[i, j, k, l] + b[i, j, k, l] * c[i, j, k, l] +
+                                    2 * d[i, j, k, l] * e[i, j, k, l] * 3;
                 }
             }
         }
@@ -366,16 +299,12 @@ auto compute_expression_manual_indexing_4d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_manual_iterators_4d() -> void
-{
+auto compute_expression_manual_iterators_4d() -> void {
 
     int64_t n1 = 250;
     int64_t n2 = 80;
@@ -400,8 +329,7 @@ auto compute_expression_manual_iterators_4d() -> void
 
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (it_r != r.end())
-    {
+    while (it_r != r.end()) {
         *it_r = *it_a + *it_b * *it_c + 2 * *it_d * *it_e * 3;
         it_a++;
         it_b++;
@@ -413,16 +341,12 @@ auto compute_expression_manual_iterators_4d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto compute_expression_4d() -> void
-{
+auto compute_expression_4d() -> void {
 
     int64_t n1 = 250;
     int64_t n2 = 80;
@@ -445,16 +369,12 @@ auto compute_expression_4d() -> void
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds> (
-        end - start
-    ).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
     std::println("Time: {} ms", elapsed);
-
 }
 
-auto main() -> int
-{
+auto main() -> int {
 
     compute_expression_manual_pointer_walk_1d();
     compute_expression_manual_indexing_1d();
@@ -477,4 +397,3 @@ auto main() -> int
 
     return 0;
 }
-
